@@ -258,6 +258,13 @@ def evaluate(dice, cat, up, cats, dictionary):
     return score + dictionary.get(code(new_cat, up))
 
 
+def extend(dice, d):
+    result = list(dice)
+    result.append(d)
+    result.sort(reverse=True)
+    return result
+
+
 '''
  TODO: Everything so far are perfectly correct.
  You have successfully implemented R3.
@@ -269,6 +276,7 @@ def evaluate(dice, cat, up, cats, dictionary):
 
 def main():
     acc = 0
+    pacc = 5242
     dictionary = {"full": 0}
     full = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     cache = [[], dicePatterns(1), dicePatterns(2), dicePatterns(3), dicePatterns(4), dicePatterns(5)]
@@ -291,10 +299,41 @@ def main():
                             max_exp = score
                             # max_cat = e
                     R3[cache[5].index(d)] = max_exp
+
+                # Evaluate K2
+                K2 = {}
+                for d in cache[5]:
+                    K2[cache[5].index(d)*10+5] = R3[cache[5].index(d)]
+                for k in range(4, -1, -1):
+                    for d in cache[k]:
+                        exp = 0
+                        for e in range(1, 7):
+                            new_d = extend(d,e)
+                            exp += K2[cache[k+1].index(new_d)*10+k+1]
+                        K2[cache[k].index(d)*10+k] = exp / 6
+
                 acc += 1
-                print(acc, "/ 524224")
+                '''
+                exp = 0
+                for key in R3.keys():
+                    prob = prRoll(cache[5][key])
+                    exp += prob * R3.get(key)
+                for key in K2.keys():
+                    print(cache[key % 10][key // 10],K2.get(key))
+                print(cats)
+                print("R3 prob:",exp)
+                if acc >= 1:
+                    return
+                '''
+
+                print(acc)
+                '''                
+                if acc >= pacc :
+                print(pacc / 5242,"% finished...")
+                pacc += 5242
+                '''
+
 
     print("done.", acc)
-
 
 main()
