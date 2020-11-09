@@ -265,6 +265,14 @@ def extend(dice, d):
     return result
 
 
+def remove(dice, d):
+    if d in dice:
+        result = list(dice)
+        result.remove(d)
+        return result
+    return False
+
+
 '''
  TODO: Everything so far are perfectly correct.
  You have successfully implemented R3.
@@ -279,10 +287,10 @@ def main():
     pacc = 5242
     dictionary = {"full": 0}
     full = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    cache = [[], dicePatterns(1), dicePatterns(2), dicePatterns(3), dicePatterns(4), dicePatterns(5)]
+    cache = [[[]], dicePatterns(1), dicePatterns(2), dicePatterns(3), dicePatterns(4), dicePatterns(5)]
     for i in range(12, -1, -1):
         states = choosePatterns(13, i)
-        if i < 12: return
+        #if i < 12: return
         for cats in states:
             empty = list(full)
             for c in cats: empty.remove(c)
@@ -303,37 +311,76 @@ def main():
                 # Evaluate K2
                 K2 = {}
                 for d in cache[5]:
-                    K2[cache[5].index(d)*10+5] = R3[cache[5].index(d)]
+                    K2[cache[5].index(d) * 10 + 5] = R3[cache[5].index(d)]
                 for k in range(4, -1, -1):
                     for d in cache[k]:
                         exp = 0
                         for e in range(1, 7):
-                            new_d = extend(d,e)
-                            exp += K2[cache[k+1].index(new_d)*10+k+1]
-                        K2[cache[k].index(d)*10+k] = exp / 6
+                            new_d = extend(d, e)
+                            exp += K2[cache[k + 1].index(new_d) * 10 + k + 1]
+                        K2[cache[k].index(d) * 10 + k] = exp / 6
+
+                # Evaluate R2
+                R2 = {0: K2.get(0)}
+                for k in range(1, 6):
+                    for d in cache[k]:
+                        max_exp = K2.get(cache[k].index(d) * 10 + k)
+                        for e in range(1, 7):
+                            r = remove(d, e)
+                            if r:
+                                max_exp = max(max_exp, R2[cache[k - 1].index(r) * 10 + k - 1])
+                        R2[cache[k].index(d)*10+k] = max_exp
+
+                # Evaluate K1
+                K1 = {}
+                for d in cache[5]:
+                    K1[cache[5].index(d) * 10 + 5] = R2[cache[5].index(d)*10+5]
+                for k in range(4, -1, -1):
+                    for d in cache[k]:
+                        exp = 0
+                        for e in range(1, 7):
+                            new_d = extend(d, e)
+                            exp += K1[cache[k + 1].index(new_d) * 10 + k + 1]
+                        K1[cache[k].index(d) * 10 + k] = exp / 6
+
+                # Evaluate R1
+                R1 = {0: K1.get(0)}
+                for k in range(1, 6):
+                    for d in cache[k]:
+                        max_exp = K1.get(cache[k].index(d) * 10 + k)
+                        for e in range(1, 7):
+                            r = remove(d, e)
+                            if r:
+                                max_exp = max(max_exp, R1[cache[k - 1].index(r) * 10 + k - 1])
+                        R1[cache[k].index(d) * 10 + k] = max_exp
+
+                # Evaluate expectation
+                exp = 0
+                for key in R1.keys():
+                    if (key % 10 == 5):
+                        exp += prRoll(cache[5][key // 10]) * K1.get(key)
+                dictionary[code(cats,u)] = exp
+
 
                 acc += 1
                 '''
-                exp = 0
-                for key in R3.keys():
-                    prob = prRoll(cache[5][key])
-                    exp += prob * R3.get(key)
-                for key in K2.keys():
-                    print(cache[key % 10][key // 10],K2.get(key))
-                print(cats)
-                print("R3 prob:",exp)
+                for key in R1.keys():
+                    print(cache[key % 10][key // 10], R1.get(key))
+                # '''
+
+                '''
                 if acc >= 1:
                     return
-                '''
+                # '''
 
                 print(acc)
-                '''                
-                if acc >= pacc :
-                print(pacc / 5242,"% finished...")
-                pacc += 5242
                 '''
-
+                if acc >= pacc :
+                    print(pacc / 5242,"% finished...")
+                    pacc += 5242
+                #'''
 
     print("done.", acc)
+
 
 main()
