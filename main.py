@@ -1,4 +1,6 @@
 import numpy as np
+import csv
+from fractions import Fraction as f
 
 
 # The factorial function
@@ -68,6 +70,11 @@ def choosePatterns(n, r):
         terminate.append(n - i - 1)
 
     while buffer != terminate:
+        if 0 in buffer:
+            alt = list(buffer)
+            alt.remove(0)
+            alt.append(-1)
+            result.append(alt)
         result.append(list(buffer))
 
         if buffer[p] == n - 1:
@@ -219,7 +226,7 @@ def code(cats, up):
         return "full"
     result = 0
     for c in cats:
-        result += pow(2, c)
+        result += pow(2, c+1)
     result = result * 100 + up
     return result
 
@@ -231,6 +238,9 @@ def evaluate(dice, cat, up, cats, dictionary):
 
     # First evaluation
     score = evals[cat](dice, up)
+
+    if (cat == 0) and (score == 0):
+        cat = -1
 
     # Handle upper bonus counter
     if (cat < 7) and (cat > 0) and (up < 63):
@@ -273,114 +283,105 @@ def remove(dice, d):
     return False
 
 
-'''
- TODO: Everything so far are perfectly correct.
- You have successfully implemented R3.
- Now, implement K2. Then R2. Test them.
- K1 and R1 are exactly the same, so make sure K2 and R2 are correct.
- If possible, store that in some text/css file.
-'''
+def expectation(cache, empty, u, cats, dictionary):
+    R3 = {}
+    # Evaluate R3
+    for d in cache[5]:
+        max_exp = 0
+        # max_cat = 0
+        for e in empty:
+            score = evaluate(d, e, u, cats, dictionary)
+            if score > max_exp:
+                max_exp = score
+                # max_cat = e
+        R3[cache[5].index(d)] = max_exp
+
+    # Evaluate K2
+    K2 = {}
+    for d in cache[5]:
+        K2[cache[5].index(d) * 10 + 5] = R3[cache[5].index(d)]
+    for k in range(4, -1, -1):
+        for d in cache[k]:
+            exp = 0
+            for e in range(1, 7):
+                new_d = extend(d, e)
+                exp += K2[cache[k + 1].index(new_d) * 10 + k + 1]
+            K2[cache[k].index(d) * 10 + k] = exp / 6
+
+
+    # Evaluate R2
+    R2 = {0: K2.get(0)}
+    for k in range(1, 6):
+        for d in cache[k]:
+            max_exp = K2.get(cache[k].index(d) * 10 + k)
+            for e in range(1, 7):
+                r = remove(d, e)
+                if r or (r == []):
+                    max_exp = max(max_exp, R2[cache[k - 1].index(r) * 10 + k - 1])
+            R2[cache[k].index(d) * 10 + k] = max_exp
+
+    # Evaluate K1
+    K1 = {}
+    for d in cache[5]:
+        K1[cache[5].index(d) * 10 + 5] = R2[cache[5].index(d) * 10 + 5]
+    for k in range(4, -1, -1):
+        for d in cache[k]:
+            exp = 0
+            for e in range(1, 7):
+                new_d = extend(d, e)
+                exp += K1[cache[k + 1].index(new_d) * 10 + k + 1]
+            K1[cache[k].index(d) * 10 + k] = exp / 6
+
+
+    # Evaluate R1
+    R1 = {0: K1.get(0)}
+    for k in range(1, 6):
+        for d in cache[k]:
+            max_exp = K1.get(cache[k].index(d) * 10 + k)
+            for e in range(1, 7):
+                r = remove(d, e)
+                if r or (r == []):
+                    max_exp = max(max_exp, R1[cache[k - 1].index(r) * 10 + k - 1])
+            R1[cache[k].index(d) * 10 + k] = max_exp
+
+    # Evaluate expectation
+    exp = 0
+    for key, val in R1.items():
+        if key % 10 == 5:
+            exp += prRoll(cache[5][key // 10]) * val
+
+    return exp
 
 
 def main():
     acc = 0
-    pacc = 5242
     dictionary = {"full": 0}
     full = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     cache = [[[]], dicePatterns(1), dicePatterns(2), dicePatterns(3), dicePatterns(4), dicePatterns(5)]
     for i in range(12, -1, -1):
         states = choosePatterns(13, i)
-        #if i < 12: return
         for cats in states:
             empty = list(full)
-            for c in cats: empty.remove(c)
+            for c in cats:
+                if c == -1:
+                    empty.remove(0)
+                elif c == 0:
+                    empty.remove(0)
+                else:
+                    empty.remove(c)
 
             for u in range(64):
-                R3 = {}
-                # Evaluate R3
-                for d in cache[5]:
-                    max_exp = 0
-                    # max_cat = 0
-                    for e in empty:
-                        score = evaluate(d, e, u, cats, dictionary)
-                        if score > max_exp:
-                            max_exp = score
-                            # max_cat = e
-                    R3[cache[5].index(d)] = max_exp
-
-                # Evaluate K2
-                K2 = {}
-                for d in cache[5]:
-                    K2[cache[5].index(d) * 10 + 5] = R3[cache[5].index(d)]
-                for k in range(4, -1, -1):
-                    for d in cache[k]:
-                        exp = 0
-                        for e in range(1, 7):
-                            new_d = extend(d, e)
-                            exp += K2[cache[k + 1].index(new_d) * 10 + k + 1]
-                        K2[cache[k].index(d) * 10 + k] = exp / 6
-
-                # Evaluate R2
-                R2 = {0: K2.get(0)}
-                for k in range(1, 6):
-                    for d in cache[k]:
-                        max_exp = K2.get(cache[k].index(d) * 10 + k)
-                        for e in range(1, 7):
-                            r = remove(d, e)
-                            if r:
-                                max_exp = max(max_exp, R2[cache[k - 1].index(r) * 10 + k - 1])
-                        R2[cache[k].index(d)*10+k] = max_exp
-
-                # Evaluate K1
-                K1 = {}
-                for d in cache[5]:
-                    K1[cache[5].index(d) * 10 + 5] = R2[cache[5].index(d)*10+5]
-                for k in range(4, -1, -1):
-                    for d in cache[k]:
-                        exp = 0
-                        for e in range(1, 7):
-                            new_d = extend(d, e)
-                            exp += K1[cache[k + 1].index(new_d) * 10 + k + 1]
-                        K1[cache[k].index(d) * 10 + k] = exp / 6
-
-                # Evaluate R1
-                R1 = {0: K1.get(0)}
-                for k in range(1, 6):
-                    for d in cache[k]:
-                        max_exp = K1.get(cache[k].index(d) * 10 + k)
-                        for e in range(1, 7):
-                            r = remove(d, e)
-                            if r:
-                                max_exp = max(max_exp, R1[cache[k - 1].index(r) * 10 + k - 1])
-                        R1[cache[k].index(d) * 10 + k] = max_exp
-
-                # Evaluate expectation
-                exp = 0
-                for key in R1.keys():
-                    if (key % 10 == 5):
-                        exp += prRoll(cache[5][key // 10]) * K1.get(key)
-                dictionary[code(cats,u)] = exp
-
+                exp = expectation(cache, empty, u, cats, dictionary)
+                dictionary[code(cats, u)] = exp
 
                 acc += 1
-                '''
-                for key in R1.keys():
-                    print(cache[key % 10][key // 10], R1.get(key))
-                # '''
+                print(acc, "786432")
 
-                '''
-                if acc >= 1:
-                    return
-                # '''
+    # print("done calculating, now start writing...", acc)
 
-                print(acc)
-                '''
-                if acc >= pacc :
-                    print(pacc / 5242,"% finished...")
-                    pacc += 5242
-                #'''
-
-    print("done.", acc)
-
-
+    #'''
+    w = csv.writer(open("output.csv", "w"))
+    for key, val in dictionary.items():
+        w.writerow([key, val])
+    #'''
 main()

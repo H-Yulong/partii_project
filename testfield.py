@@ -1,6 +1,4 @@
-#import main as m
-
-s = [1,2,3]
-s.remove(2)
-print(s)
+import main as m
+d = {"full": 0}
+print(len(m.choosePatterns(13,12)))
 #print(m.evaluate([1,1,1,1,1],1,15,[0],d))
