@@ -1,4 +1,5 @@
 /Trash
 *.lnk
 *.o
-main
+main.exe
+main.exe.stackdump	
