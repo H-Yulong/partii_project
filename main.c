@@ -469,7 +469,7 @@ int* extendDice(int* dice, int d, int size){
 			if (d >= dice[0]){
 				pos = 0;
 			}
-		}else if(i == (size - 1)){
+		}else if(i == size){
 			pos = size;
 		}else{
 			if( (dice[i-1] >= d) && (dice[i] <= d)){
@@ -478,8 +478,6 @@ int* extendDice(int* dice, int d, int size){
 		}
 		i++;
 	}
-
-	printf("%d\n", pos);
 
 	for(int j=0; j<=size; j++){
 		if(j < pos){
@@ -512,7 +510,25 @@ int* removeDice(int* dice, int d, int size){
     return NULL;
 }
 
+int find(int** lib, int* row, int row_size, int entries){
+	for (int i=0; i<entries; i++){
+		int found = 0;
+		for(int j=0; j<row_size; j++){
+			if (row[j] == lib[i][j]){
+				found++;
+			}
+		}
+
+		if (found == row_size){
+			return i;
+		}
+	}
+	return -1;
+}
+
 double expectation(int*** cache, int* empty, int up, int* cats, int cats_size, double* dictionary){
+	int cache_sizes[] = {1,6,21,56,126,252};
+	int cache_indexes[] = {0,1,7,28,84,210};
     double R3[252];
     // Evaluate R3
     for(int i=0; i<252; i++){
@@ -527,21 +543,33 @@ double expectation(int*** cache, int* empty, int up, int* cats, int cats_size, d
     	}
     	R3[i] = max_exp;
     }
-    /*
 
-    # Evaluate K2
-    K2 = {}
-    for d in cache[5]:
-        K2[cache[5].index(d) * 10 + 5] = R3[cache[5].index(d)]
-    for k in range(4, -1, -1):
-        for d in cache[k]:
-            exp = 0
-            for e in range(1, 7):
-                new_d = extend(d, e)
-                exp += K2[cache[k + 1].index(new_d) * 10 + k + 1]
-            K2[cache[k].index(d) * 10 + k] = exp / 6
+    // Evaluate K2
+    double K2[462];
+    for (int i=0; i<252; i++){
+    	K2[210+i] = R3[i];
+    }
+    for (int k=4; k>=0; k = k-1){
+    	for (int i=0; i<cache_sizes[k]; i++){
+    		double exp = 0;
+    		for (int e=1; e<7; e++){
+    			int* new_d = extendDice(cache[k][i],e,k);
+    			//printf("%f\n",K2[cache_indexes[k+1] + find(cache[k+1], new_d, k, cache_sizes[k+1])]);
+    			exp += K2[cache_indexes[k+1] + find(cache[k+1], new_d, k+1, cache_sizes[k+1])];
+    		}
+    		K2[cache_indexes[k]+i] = exp / 6.0;
+    	}
+    }
+	
+    
 
 
+
+
+        /*
+for(int i=0; i<462; i++){
+    	printf("%d %f\n",i,K2[i]);
+    }
     # Evaluate R2
     R2 = {0: K2.get(0)}
     for k in range(1, 6):
@@ -592,13 +620,13 @@ int main(){
 	for(int i=0; i<6; i++){
 		cache[i] = dicePatterns(i);
 	}
-	int empty[] = {1};
-	int cats[] = {12,11,10,9,8,7,6,5,4,3,2,0};
+	int empty[] = {12};
+	int d[] = {6,6,5};
+	int* s = extendDice(d, 6, 3);
+	int cats[] = {11,10,9,8,7,6,5,4,3,2,1,-1};
 	double* dict;
-	double d = expectation(cache, empty, 0, cats, 12, dict);
-	printf("%f\n", d);
-
-
+	//printf("%d\n",find(cache[4], s, 4, 126));
+	expectation(cache, empty, 12, cats, 12, dict);
 	return 0;
 }
 
