@@ -376,7 +376,7 @@ double evaluate(int* dice, int cat, int up, int* cats, int cats_size, double* di
 	// ASSERT: problematic parameters won't be used. If you see "Segmentation Fault", that's probably your fault.
 
     // Initialization
-    int score = 0;
+    double score = 0.0;
 
     // First evaluation
     switch (cat){
@@ -436,25 +436,34 @@ double evaluate(int* dice, int cat, int up, int* cats, int cats_size, double* di
      }
 
     // Joker rule and Yahtzee bonus
-    if ((contains(cats, 0, cats_size) >= 0) && (yahtzee(dice, up) > 0)){
-        if (dice[0] == cat){
-            score += 100;
-        }else if (contains(cats, dice[0], cats_size) < 0){
-            return 0;
-        }else{
-            score += 100;
-            if (cat == 9){
-                score += 25;
-            }else if (cat == 10){
-                score += 30;
-            }else if (cat == 11){
-                score += 40;
-            }
-        }
-    }
+     if (yahtzee(dice, up) > 0){
+     	// In the case of Yahtzee is filled:
+     	if ((contains(cats, 0, cats_size) >= 0) || (contains(cats, -1, cats_size) >= 0)){
+     		// If Yahtzee is filled with 50, get a bonus of 100.
+     		if (contains(cats, 0, cats_size) >= 0){
+     			score += 100;
+     		}
 
-    int* new_cats = append(cats, cats_size, cat);
-    //score += dictionary[code(new_cats, up, cats_size+1)];
+     		// Check Joker.
+     		// If the corresponding upper section is filled, Joker is allowed.
+     		if (contains(cats, dice[0], cats_size) >= 0){
+     			// Check small straight, large straight, fullhouse.
+     			if (cat == 9){
+                	score += 25;
+            	}else if (cat == 10){
+                	score += 30;
+		        }else if (cat == 11){
+		            score += 40;
+		        }
+     		}
+     	}
+     }
+
+    int* new_cats = append(cats, cat, cats_size);
+    int c = code(new_cats, up, cats_size+1);
+    if (c != -1){
+    	score += dictionary[c];
+    }
     free(new_cats);
     return score;
 }
@@ -529,6 +538,7 @@ int find(int** lib, int* row, int row_size, int entries){
 double expectation(int*** cache, int* empty, int up, int* cats, int cats_size, double* dictionary){
 	int cache_sizes[] = {1,6,21,56,126,252};
 	int cache_indexes[] = {0,1,7,28,84,210};
+
     double R3[252];
     // Evaluate R3
     for(int i=0; i<252; i++){
@@ -541,8 +551,10 @@ double expectation(int*** cache, int* empty, int up, int* cats, int cats_size, d
     			max_exp = score;
     		}
     	}
+
     	R3[i] = max_exp;
-    }
+    } 
+
 
     // Evaluate K2
     double K2[462];
@@ -556,77 +568,154 @@ double expectation(int*** cache, int* empty, int up, int* cats, int cats_size, d
     			int* new_d = extendDice(cache[k][i],e,k);
     			//printf("%f\n",K2[cache_indexes[k+1] + find(cache[k+1], new_d, k, cache_sizes[k+1])]);
     			exp += K2[cache_indexes[k+1] + find(cache[k+1], new_d, k+1, cache_sizes[k+1])];
+    			free(new_d);
     		}
     		K2[cache_indexes[k]+i] = exp / 6.0;
     	}
     }
-	
-    
 
-
-
-
-        /*
-for(int i=0; i<462; i++){
-    	printf("%d %f\n",i,K2[i]);
+    // Evaluate R2
+    double R2[462];
+    R2[0] = K2[0];
+    for (int k=1; k<6; k++){
+    	for(int j=0; j<cache_sizes[k]; j++){
+    		double max_exp = K2[cache_indexes[k] + j];
+    		for (int e=1; e<7; e++){
+    			int* r = removeDice(cache[k][j], e, k);
+    			if (r != NULL){
+    				double val = R2[cache_indexes[k-1] + find(cache[k-1], r, k-1, cache_sizes[k-1])];
+    				if (val > max_exp){
+    					max_exp = val;
+    				}
+    			}
+    			free(r);
+    		}
+    		R2[cache_indexes[k]+j] = max_exp;
+    	}    	
     }
-    # Evaluate R2
-    R2 = {0: K2.get(0)}
-    for k in range(1, 6):
-        for d in cache[k]:
-            max_exp = K2.get(cache[k].index(d) * 10 + k)
-            for e in range(1, 7):
-                r = remove(d, e)
-                if r or (r == []):
-                    max_exp = max(max_exp, R2[cache[k - 1].index(r) * 10 + k - 1])
-            R2[cache[k].index(d) * 10 + k] = max_exp
 
-    # Evaluate K1
-    K1 = {}
-    for d in cache[5]:
-        K1[cache[5].index(d) * 10 + 5] = R2[cache[5].index(d) * 10 + 5]
-    for k in range(4, -1, -1):
-        for d in cache[k]:
-            exp = 0
-            for e in range(1, 7):
-                new_d = extend(d, e)
-                exp += K1[cache[k + 1].index(new_d) * 10 + k + 1]
-            K1[cache[k].index(d) * 10 + k] = exp / 6
+    // Evaluate K1
+    double K1[462];
+    for (int i=0; i<252; i++){
+    	K1[210+i] = R2[210+i];
+    }
+    for (int k=4; k>=0; k = k-1){
+    	for (int i=0; i<cache_sizes[k]; i++){
+    		double exp = 0;
+    		for (int e=1; e<7; e++){
+    			int* new_d = extendDice(cache[k][i],e,k);
+    			exp += K1[cache_indexes[k+1] + find(cache[k+1], new_d, k+1, cache_sizes[k+1])];
+    			free(new_d);
+    		}
+    		K1[cache_indexes[k]+i] = exp / 6.0;
+    	}
+    }
+
+	// Evaluate R1
+    double R1[462];
+    R1[0] = K1[0];
+    for (int k=1; k<6; k++){
+    	for(int j=0; j<cache_sizes[k]; j++){
+    		double max_exp = K1[cache_indexes[k] + j];
+    		for (int e=1; e<7; e++){
+    			int* r = removeDice(cache[k][j], e, k);
+    			if (r != NULL){
+    				double val = R1[cache_indexes[k-1] + find(cache[k-1], r, k-1, cache_sizes[k-1])];
+    				if (val > max_exp){
+    					max_exp = val;
+    				}
+    			}
+    			free(r);
+    		}
+    		R1[cache_indexes[k]+j] = max_exp;
+    	}    	
+    }
 
 
-    # Evaluate R1
-    R1 = {0: K1.get(0)}
-    for k in range(1, 6):
-        for d in cache[k]:
-            max_exp = K1.get(cache[k].index(d) * 10 + k)
-            for e in range(1, 7):
-                r = remove(d, e)
-                if r or (r == []):
-                    max_exp = max(max_exp, R1[cache[k - 1].index(r) * 10 + k - 1])
-            R1[cache[k].index(d) * 10 + k] = max_exp
 
-    # Evaluate expectation
-    exp = 0
-    for key, val in R1.items():
-        if key % 10 == 5:
-            exp += prRoll(cache[5][key // 10]) * val
+    double exp = 0.0;
+    for (int i=0; i<252; i++){
+    	exp += prRoll(cache[5][i]) * R1[210+i];
+    }
 
-    return exp
+    return exp;
+
+	/*
+    for(int i=0; i<462; i++){
+    	printf("%d %f\n",i,K1[i]);
+    }
     */
 }
 
 int main(){
+	// Initializations
 	int** cache[6];
+	double* dict = calloc(1048383,sizeof(double));
+	int acc=0, choose_size[] = {1,14,90,352,935,1782,2508,2640,2079,1210,506,144,25};
+	int full[] = {12,11,10,9,8,7,6,5,4,3,2,1,0};
 	for(int i=0; i<6; i++){
 		cache[i] = dicePatterns(i);
 	}
-	int empty[] = {12};
-	int d[] = {6,6,5};
-	int* s = extendDice(d, 6, 3);
-	int cats[] = {11,10,9,8,7,6,5,4,3,2,1,-1};
-	double* dict;
-	//printf("%d\n",find(cache[4], s, 4, 126));
-	expectation(cache, empty, 12, cats, 12, dict);
+
+	FILE* fp1 = fopen("D:\\Prog\\partii_project\\output.txt","w");
+	FILE* fp2 = fopen("D:\\Prog\\partii_project\\output_readable.txt","w");
+	fclose(fp1);
+    fclose(fp2);
+
+    //int** s = choosePatterns(12);
+    //int e[] = {0};
+    //printf("%f\n", expectation(cache, e, 0, s[24], 12, dict));
+
+	// Calculations
+	///*
+	for(int i=12; i>=0; i = i-1){
+		int** states = choosePatterns(i);
+		for (int j=0; j<choose_size[i]; j++){
+			int empty[13-i];
+			int p=0;
+			for(int k=0; k<12; k++){
+				if (contains(states[j],full[k],i) < 0){
+					empty[p++] = full[k];
+				}
+			}
+
+			if ((contains(states[j],0,i) < 0) && (contains(states[j],-1,i) < 0)){
+				empty[p++] = 0;
+			}
+
+			for(int u=0; u<64; u++){
+				///*
+				FILE* fp1 = fopen("D:\\Prog\\partii_project\\output.txt","a");
+				FILE* fp2 = fopen("D:\\Prog\\partii_project\\output_readable.txt","a");
+				
+				double exp = expectation(cache, empty, u, states[j], i, dict);
+				
+				int c = code(states[j], u, i);
+				dict[c] = exp;
+                
+                fprintf(fp1,"%d, %.7f\n",c,exp);
+
+                fprintf(fp2,"[");
+                for(int k=0; k<(13-i); k++){
+                	fprintf(fp2,"%d ", empty[k]);
+                }
+                fprintf(fp2,"] %d %.3f\n", u, exp);
+                
+                fclose(fp1);
+                fclose(fp2);
+                
+                acc ++;
+            	printf("%d / 786304\n", acc);
+                
+			}
+			
+		}
+		free(states);
+	}
+	//*/
+
+	free(dict);
+	
 	return 0;
 }
 
