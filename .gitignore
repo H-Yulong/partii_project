@@ -1,7 +1,9 @@
 /Trash
+/Outputs
+/Backup
 *.lnk
 *.o
-main.exe
-main.exe.stackdump
+*.exe
+*.stackdump
 *.txt
 /.idea

@@ -1,9 +1,10 @@
 all : 
-	gcc -c -O3 main.c
-	gcc -o main main.c
-	./main
+	gcc -c utils.c
+	gcc -c main.c
+	gcc -o Outputs/main utils.o main.o
+	Outputs/main
 
 clean: 
 	rm main.o
-	rm main
+	rm utils.o
 	rm main.exe.stackdump
