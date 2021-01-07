@@ -1,6 +1,10 @@
 /Trash
 /Outputs
 /Backup
+/Examples
+/Data
+/venv
+/__pycache__
 *.lnk
 *.o
 *.exe

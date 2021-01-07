@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 
-
 # The factorial function V
 def fact(n):
     if n == 0:
@@ -407,13 +406,14 @@ def move(cats, up, dice, roll, dictionary):
 
 
 def main():
-    #dictionary = load()
-    cats = [12,11,10,9,8,7,6,5,4,3,2,1]
-    up = 63
-    dice = [1,2,3,4,5]
-    roll = 2
+    dictionary = load()
+    cats = [2,7]
+    up = 4
+    dice = [4,4,5,5,6]
+    roll = 0
     dice.sort(reverse=True)
-    #print(move(cats,up,dice,roll,dictionary))
+    print(move(cats,up,dice,roll,dictionary))
+    '''
     result = [0,0,0,0,0,0]
     for d in dicePatterns(5):
         pr = prRoll(d)
@@ -427,7 +427,7 @@ def main():
 
 
 
-    '''
+    
     x1 = []
     y1 = []
     x2 = []
@@ -455,4 +455,4 @@ def main():
     '''
 
 
-main()
+#main()
