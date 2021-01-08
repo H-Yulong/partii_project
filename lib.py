@@ -1,3 +1,6 @@
+import random
+
+
 # The factorial function V
 def fact(n):
     if n == 0:
@@ -17,6 +20,54 @@ def prRoll(arr):
         result = result / fact(i)
 
     return result
+
+
+# Generates a random 5-dice roll with the given dice kept in hand
+def roll(kept):
+    result = [0, 0, 0, 0, 0]
+    length = len(kept)
+    for i in range(length):
+        result[i] = kept[i]
+    for i in range(5 - length):
+        result[length + i] = random.randint(1, 6)
+    result.sort(reverse=True)
+    return result
+
+
+def code(cats, up):
+    if len(cats) == 13:
+        return "full"
+    result = 0
+    for c in cats:
+        result += pow(2, c + 1)
+    result = result * 64 + up
+    return result
+
+
+def extend(dice, d):
+    result = list(dice)
+    result.append(d)
+    result.sort(reverse=True)
+    return result
+
+
+def subset(this, that):
+    if len(this) > len(that):
+        return False
+    for t in this:
+        if t not in that:
+            return False
+        else:
+            that = remove(that, t)
+    return True
+
+
+def remove(dice, d):
+    if d in dice:
+        result = list(dice)
+        result.remove(d)
+        return result
+    return False
 
 
 def yahtzee(dice, up):
@@ -144,6 +195,48 @@ def large_straight(dice, up):
 
 def chance(dice, up):
     return sum(dice)
+
+
+def fillScore(dice, up, cats, cat):
+    # Initialization
+    evals = [yahtzee, ones, twos, threes, fours, fives, sixes, three_of_a_kind,
+             four_of_a_kind, fullhouse, small_straight, large_straight, chance]
+
+    # First evaluation
+    score = evals[cat](dice, up)
+
+    if (cat == 0) and (score == 0):
+        cat = -1
+
+    # Handle upper bonus counter
+    if (cat < 7) and (cat > 0) and (up < 63):
+        up = up + score
+        if up > 63:
+            up = 63
+
+    # Joker rule and Yahtzee bonus
+    if yahtzee(dice, up) > 0:
+        # In the case of Yahtzee is filled:
+        if (0 in cats) or (-1 in cats):
+            # If Yahtzee is filled with 50, get a bonus of 100.
+            if 0 in cats:
+                score += 100
+
+            # Check Joker.
+            # If the corresponding upper section is filled, Joker is allowed.
+            if dice[0] in cats:
+                # Check small straight, large straight, fullhouse.
+                if cat == 9:
+                    score += 25
+                elif cat == 10:
+                    score += 30
+                elif cat == 11:
+                    score += 40
+
+    new_cat = list(cats)
+    new_cat.append(cat)
+
+    return score, new_cat, up
 
 
 # Generates all the possible dice-roll patterns for n dice with d faces (default 6)

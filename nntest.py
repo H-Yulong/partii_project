@@ -228,7 +228,7 @@ def main():
             out.backward()
             with torch.no_grad():
                 if (len(empty)) == 1:
-                    delta = current_score / 1000 - out
+                    delta = current_score / 1575 - out
                 else:
                     delta = m(input_format(next_state, next_up, next_ystate)) - out
 
