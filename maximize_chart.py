@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-f = open("Table_Maximize/13_readbale.txt","r")
+f = open("Data/Table_Maximize/13_readbale.txt","r")
 f.readline()
 f.readline()
 f.readline()

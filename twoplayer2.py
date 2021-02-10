@@ -2,6 +2,7 @@ import random
 import torch
 import torch.nn as nn
 import test as util
+import yahtzee_agent as y
 import torch.nn.functional as F
 import numpy
 
@@ -17,11 +18,20 @@ def roll(kept):
     return result
 
 
-def input_format(states, up, y_state,):
-    return torch.tensor(states + [up] + [y_state], dtype=torch.float32)
+def pre_format(cats):
+    empty = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    for c in cats:
+        empty[c] = 1
+    if -1 in cats:
+        empty[0] = 1
+    return empty
 
 
-def state_evaluate(dice, cat, up, state, y_state, model):
+def input_format(states1, up1, y_state1, score1, states2, up2, y_state2, score2):
+    return torch.tensor(states1 + [up1, y_state1, score1] + states2 + [up2, y_state2, score2], dtype=torch.float32)
+
+
+def state_evaluate(dice, cat, up, state, y_state, score1, state2, up2, y_state2, score2, model):
     # Initialization
     evals = [util.yahtzee, util.ones, util.twos, util.threes, util.fours, util.fives, util.sixes, util.three_of_a_kind,
              util.four_of_a_kind, util.fullhouse, util.small_straight, util.large_straight, util.chance]
@@ -67,19 +77,19 @@ def state_evaluate(dice, cat, up, state, y_state, model):
                 next_y_state = 0
 
     if model:
-        return score + model(input_format(next_state, up, next_y_state)).item()
+        return model(input_format(next_state, up, next_y_state, score1 + score, state2, up2, y_state2, score2)).item()
     else:
         return score
 
 
 def main():
-    input_size = 15
-    hidden_size1 = 128
+    input_size = 32
+    hidden_size1 = 32
     hidden_size2 = 32
     output_size = 1
-    a = 0.3
+    a = 0.01
     l = 0.7
-    episodes = 100
+    episodes = 1000
 
     cache = [[[]], util.dicePatterns(1), util.dicePatterns(2), util.dicePatterns(3), util.dicePatterns(4),
              util.dicePatterns(5)]
@@ -96,23 +106,18 @@ def main():
 
     m = nn.Sequential(nn.Linear(input_size, hidden_size1, False),
                       nn.Sigmoid(),
-                      nn.Linear(hidden_size1,hidden_size2, False),
+                      nn.Linear(hidden_size1, hidden_size2, False),
                       nn.Sigmoid(),
                       nn.Linear(hidden_size2, output_size, False),
                       nn.Sigmoid())
 
-    #m.load_state_dict(torch.load("Data/new_module3.pt"))
-
-    #'''
     for p in m.parameters():
-        #p.data = torch.zeros_like(p)
+        # p.data = torch.zeros_like(p)
         p.grad = torch.zeros_like(p)
-    #'''
 
-
-    print("before training:")
-    print(m(input_format([1,1,1,1,1,1,1,1,1,1,1,1,0], 0, -1)))
     print("training...")
+
+    opti = y.SingleBestAgent("Data/output.txt")
 
     for episode in range(episodes):
         # Clear the trace
@@ -120,13 +125,26 @@ def main():
             p.grad = torch.zeros_like(p)
 
         # Initial state
+        opti_state = y.GameState(cats=[], log=False)
+        opti_y = 0
+
         state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         up = 0
         y_state = 0
         current_score = 0
 
-        # Loop for each step of episode
         for round_id in range(13):
+            # Let the optimal agent move
+            while opti_state.rolls > 0:
+                opti.move(opti_state)
+            if not opti_state.gameover:
+                opti.move(opti_state)
+
+            if -1 in opti_state.cats:
+                opti_y = -1
+            elif 0 in opti_state.cats:
+                opti_y = 1
+
             # Compute R3,K2,R2,K1
             empty = list(full)
             for i in range(13):
@@ -137,7 +155,9 @@ def main():
             for d in cache[5]:
                 max_exp = 0
                 for e in empty:
-                    score = state_evaluate(d, e, up, state, y_state, m)
+                    score = state_evaluate(d, e, up, state, y_state, current_score, pre_format(opti_state.cats),
+                                           opti_state.up, opti_y,
+                                           opti_state.score, m)
                     if score > max_exp:
                         max_exp = score
                 R3[cache[5].index(d)] = max_exp
@@ -203,7 +223,9 @@ def main():
             max_cat = empty[0]
             max_exp = 0
             for e in empty:
-                v = state_evaluate(dice, e, up, state, y_state, m)
+                v = state_evaluate(dice, e, up, state, y_state, current_score, pre_format(opti_state.cats),
+                                   opti_state.up, opti_y,
+                                   opti_state.score, m)
                 if v > max_exp:
                     max_exp = v
                     max_cat = e
@@ -225,21 +247,24 @@ def main():
                     next_ystate = 1
                 else:
                     next_ystate = -1
-            reward = state_evaluate(dice, max_cat, up, state, y_state, None)
-            current_score += reward
+
+            next_score = current_score + state_evaluate(dice, max_cat, up, state, y_state, current_score,
+                                                        pre_format(opti_state.cats), opti_state.up, opti_y,
+                                                        opti_state.score, None)
 
             # Do the TD-Lambda thing
             with torch.no_grad():
                 for p in m.parameters():
                     p.grad *= l
 
-            out = m(input_format(state, up, y_state))
+            out = m(input_format(state, up, y_state, current_score, pre_format(opti_state.cats), opti_state.up, opti_y,
+                                 opti_state.score))
             out.backward()
             with torch.no_grad():
-                if (len(empty)) == 1:
-                    delta = current_score / 1575 - out
-                else:
-                    delta = m(input_format(next_state, next_up, next_ystate)) - out
+                reward = (next_score - opti_state.score) / 1575
+                delta = reward + m(
+                    input_format(next_state, next_up, next_ystate, next_score, pre_format(opti_state.cats),
+                                 opti_state.up, opti_y, opti_state.score)) - out
 
                 for p in m.parameters():
                     p += a * delta * p.grad
@@ -247,25 +272,15 @@ def main():
             state = next_state
             up = next_up
             y_state = next_ystate
+            current_score = next_score
 
-            #print(round_id, dice, state, up, y_state, current_score)
-            #print(empty)
-        #print(m(input_format([1,1,1,1,1,1,1,1,1,1,1,1,0], 0, -1)))
         print(episode, " / ", episodes)
-        print(m(input_format([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 0, -1)).item())
-    '''
-    print("---------weights---------")
-    for p in m.parameters():
-        print(p)   
-    '''
-    print(m(input_format([1,1,1,1,1,1,1,1,1,1,1,1,0], 0, -1)).item())
+        print(m(input_format([0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0], 0, 0, 67,
+                             [0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0], 0, 0, 100)))
+        print(m(input_format([0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0], 0, 0, 100,
+                             [0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0], 0, 0, 67)))
 
-    torch.save(m.state_dict(), "Data/new_module4.pt")
-
-
+    torch.save(m.state_dict(), "Data/two_player3.pt")
 
 
 main()
-
-
-
