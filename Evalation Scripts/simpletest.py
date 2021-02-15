@@ -1,7 +1,7 @@
 import yahtzee_agent as y
 import torch
 
-agent = y.NNTwoPlayer("Data/two_player.pt")
+agent = y.NNTwoPlayer("../Data/two_player.pt")
 states =  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 states2 =  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 up = 0

@@ -1,11 +1,15 @@
 import random
 import torch
 import torch.nn as nn
-import test as util
+import lib
 import yahtzee_agent as y
 import torch.nn.functional as F
 import numpy
 
+'''
+This is the second two-player agent
+Training against the optimal solitaire agent
+'''
 
 def roll(kept):
     result = [0, 0, 0, 0, 0]
@@ -33,8 +37,8 @@ def input_format(states1, up1, y_state1, score1, states2, up2, y_state2, score2)
 
 def state_evaluate(dice, cat, up, state, y_state, score1, state2, up2, y_state2, score2, model):
     # Initialization
-    evals = [util.yahtzee, util.ones, util.twos, util.threes, util.fours, util.fives, util.sixes, util.three_of_a_kind,
-             util.four_of_a_kind, util.fullhouse, util.small_straight, util.large_straight, util.chance]
+    evals = [lib.yahtzee, lib.ones, lib.twos, lib.threes, lib.fours, lib.fives, lib.sixes, lib.three_of_a_kind,
+             lib.four_of_a_kind, lib.fullhouse, lib.small_straight, lib.large_straight, lib.chance]
 
     # First evaluation
     score = evals[cat](dice, up)
@@ -46,7 +50,7 @@ def state_evaluate(dice, cat, up, state, y_state, score1, state2, up2, y_state2,
             up = 63
 
     # Joker rule and Yahtzee bonus
-    if util.yahtzee(dice, up) > 0:
+    if lib.yahtzee(dice, up) > 0:
         # In the case of Yahtzee is filled:
         if (y_state == 1) or (y_state == -1):
             # If Yahtzee is filled with 50, get a bonus of 100.
@@ -89,10 +93,12 @@ def main():
     output_size = 1
     a = 0.01
     l = 0.7
+    g = 0.5
     episodes = 1000
+    score_weight = 100
 
-    cache = [[[]], util.dicePatterns(1), util.dicePatterns(2), util.dicePatterns(3), util.dicePatterns(4),
-             util.dicePatterns(5)]
+    cache = [[[]], lib.dicePatterns(1), lib.dicePatterns(2), lib.dicePatterns(3), lib.dicePatterns(4),
+             lib.dicePatterns(5)]
     full = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     '''
     State encoding:
@@ -111,9 +117,13 @@ def main():
                       nn.Linear(hidden_size2, output_size, False),
                       nn.Sigmoid())
 
+    #m.load_state_dict(torch.load("Data/two_player4.pt"))
+
     for p in m.parameters():
         # p.data = torch.zeros_like(p)
         p.grad = torch.zeros_like(p)
+
+
 
     print("training...")
 
@@ -169,7 +179,7 @@ def main():
                 for d in cache[k]:
                     exp = 0
                     for e in range(1, 7):
-                        new_d = util.extend(d, e)
+                        new_d = lib.extend(d, e)
                         exp += K2[cache[k + 1].index(new_d) * 10 + k + 1]
                     K2[cache[k].index(d) * 10 + k] = exp / 6
 
@@ -178,7 +188,7 @@ def main():
                 for d in cache[k]:
                     max_exp = K2.get(cache[k].index(d) * 10 + k)
                     for e in range(1, 7):
-                        r = util.remove(d, e)
+                        r = lib.remove(d, e)
                         if r or (r == []):
                             max_exp = max(max_exp, R2[cache[k - 1].index(r) * 10 + k - 1])
                     R2[cache[k].index(d) * 10 + k] = max_exp
@@ -190,7 +200,7 @@ def main():
                 for d in cache[k]:
                     exp = 0
                     for e in range(1, 7):
-                        new_d = util.extend(d, e)
+                        new_d = lib.extend(d, e)
                         exp += K1[cache[k + 1].index(new_d) * 10 + k + 1]
                     K1[cache[k].index(d) * 10 + k] = exp / 6
 
@@ -201,7 +211,7 @@ def main():
             for key, val in K1.items():
                 d = cache[key % 10][key // 10]
 
-                if util.subset(d, dice):
+                if lib.subset(d, dice):
                     if val > max_exp:
                         max_exp = val
                         max_keep = d
@@ -213,7 +223,7 @@ def main():
             for key, val in K2.items():
                 d = cache[key % 10][key // 10]
 
-                if util.subset(d, dice):
+                if lib.subset(d, dice):
                     if val > max_exp:
                         max_exp = val
                         max_keep = d
@@ -243,7 +253,7 @@ def main():
                     next_up = 63
 
             if max_cat == 0:
-                if util.yahtzee(dice, 0) > 0:
+                if lib.yahtzee(dice, 0) > 0:
                     next_ystate = 1
                 else:
                     next_ystate = -1
@@ -261,8 +271,8 @@ def main():
                                  opti_state.score))
             out.backward()
             with torch.no_grad():
-                reward = (next_score - opti_state.score) / 1575
-                delta = reward + m(
+                reward = (next_score - opti_state.score) / score_weight
+                delta = reward + g * m(
                     input_format(next_state, next_up, next_ystate, next_score, pre_format(opti_state.cats),
                                  opti_state.up, opti_y, opti_state.score)) - out
 

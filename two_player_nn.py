@@ -1,7 +1,7 @@
 import random
 import torch
 import torch.nn as nn
-import test as util
+import lib as util
 import torch.nn.functional as F
 import numpy
 

@@ -1,6 +1,11 @@
 import lib
 import yahtzee_agent as y
 
+'''
+Single Evaluator:
+Calculate the expected lose of score due to sub-optimal move
+'''
+
 
 def evaluate(dice, up, cats, cat, dictionary):
     v, new_cat, up = lib.fillScore(dice, up, cats, cat)
@@ -8,15 +13,13 @@ def evaluate(dice, up, cats, cat, dictionary):
     return v
 
 
-def main():
+def case_evaluate(cats,up):
     # Params
-    cats = []
-    up = 0
-    nn = y.SingleNNAgent("Data/new_module4.pt")
+    nn = y.SingleNNAgent("../Data/new_module4.pt")
 
     # Load dictionary
     dictionary = {"full": 0}
-    with open("Data/output.txt") as f:
+    with open("../Data/output.txt") as f:
         for line in f:
             (key, val) = line.split(", ")
             dictionary[int(key)] = float(val)
@@ -99,7 +102,6 @@ def main():
     blind = y.SingleBlindAgent()
     error = 0
     error2 = 0
-    acc = 0
     for dice in cache[5]:
         state = y.GameState(cats=cats, up=up, log=False)
         state2 = y.GameState(cats=cats, up=up, log=False)
@@ -112,10 +114,25 @@ def main():
         keep2 = blind.move(state2)
         error2 += (R1[cache[5].index(dice) * 10 + 5] - K1[cache[len(keep2)].index(keep2) * 10 + len(keep2)]) * lib.prRoll(dice)
 
-        print(acc)
-        acc += 1
-
+    print(cats,up)
     print("Errors: ", error, error2)
+    return error, error2
+
+
+def main():
+    cats = lib.choosePatterns(13,1)
+    nn_error = 0
+    blind_error = 0
+    deno = len(cats) * 30
+    for cat in cats:
+        for u in range(30):
+            e1,e2 = case_evaluate(cat,u)
+            nn_error += e1
+            blind_error += e2
+    nn_error = nn_error / deno
+    blind_error = blind_error / deno
+
+    print("Final errors: ", nn_error, blind_error)
 
 
 main()

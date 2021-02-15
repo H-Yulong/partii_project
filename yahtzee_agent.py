@@ -130,7 +130,7 @@ class SinglePlayerAgent():
                         max_keep = d
             if (lib.subset(max_keep, state.dice)) and lib.subset(state.dice, max_keep):
                 state.rolls = 0
-                self.move(state)
+                #self.move(state)
             else:
                 state.roll(max_keep)
 
@@ -170,7 +170,7 @@ class SinglePlayerAgent():
                         max_keep = d
             if (lib.subset(max_keep, state.dice)) and lib.subset(state.dice, max_keep):
                 state.rolls = 0
-                self.move(state)
+                #self.move(state)
             else:
                 state.roll(max_keep)
 
@@ -325,7 +325,7 @@ class TwoPlayerAgent:
                         max_keep = d
             if (lib.subset(max_keep, state.dice)) and lib.subset(state.dice, max_keep):
                 state.rolls = 0
-                self.move(state, state2)
+                #self.move(state, state2)
             else:
                 state.roll(max_keep)
 
@@ -365,7 +365,7 @@ class TwoPlayerAgent:
                         max_keep = d
             if (lib.subset(max_keep, state.dice)) and lib.subset(state.dice, max_keep):
                 state.rolls = 0
-                self.move(state, state2)
+                #self.move(state, state2)
             else:
                 state.roll(max_keep)
 
@@ -387,7 +387,7 @@ class TableBasedTwoPlayer(TwoPlayerAgent):
         print("Loading library...")
         print("Please wait for a few minutes...")
         for i in range(1,14):
-            filename = "Data/Table_Maximize/" + str(i)
+            filename = "../Data/Table_Maximize/" + str(i)
             f = open(filename, "rb")
             state = f.read(4)
 
@@ -437,10 +437,8 @@ class TableBasedTwoPlayer(TwoPlayerAgent):
 
 class NNTwoPlayer(TwoPlayerAgent):
 
-    def __init__(self, path):
+    def __init__(self, path, hidden_size1, hidden_size2):
         TwoPlayerAgent.__init__(self, "TableBasedTwoPlayer")
-        hidden_size1 = 32
-        hidden_size2 = 32
         self.model = nn.Sequential(nn.Linear(32, hidden_size1, False),
                                    nn.Sigmoid(),
                                    nn.Linear(hidden_size1, hidden_size2, False),
@@ -476,3 +474,48 @@ class NNTwoPlayer(TwoPlayerAgent):
         return  self.model(torch.tensor(
             states + [up, y_state, score + v] + states2 + [state2.up, y_state2, state2.score],
             dtype=torch.float32))
+
+
+class NNTwoPlayer2(TwoPlayerAgent):
+    def __init__(self,path):
+        TwoPlayerAgent.__init__(self, "TableBasedTwoPlayer")
+        hidden_size1 = 32
+        hidden_size2 = 64
+        hidden_size3 = 32
+        self.model = nn.Sequential(nn.Linear(32, hidden_size1, False),
+                          nn.Sigmoid(),
+                          nn.Linear(hidden_size1, hidden_size2, False),
+                          nn.Sigmoid(),
+                          nn.Linear(hidden_size2, hidden_size3, False),
+                          nn.Tanh(),
+                          nn.Linear(hidden_size3, 1, False),
+                          nn.Tanh())
+        self.model.load_state_dict(torch.load(path))
+
+    def evaluate(self, dice, up, cats, cat, score, state2):
+        v, new_cat, up = lib.fillScore(dice, up, cats, cat)
+        states = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+        for c in new_cat:
+            if c >= 0:
+                states[c] = 1
+        y_state = 0
+        if -1 in new_cat:
+            y_state = -1
+        elif 0 in new_cat:
+            y_state = 1
+
+        states2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        for c in state2.cats:
+            if c >= 0:
+                states2[c] = 1
+        y_state2 = 0
+        if -1 in state2.cats:
+            y_state2 = -1
+        elif 0 in state2.cats:
+            y_state2 = 1
+
+
+        return  v + self.model(torch.tensor(
+            states + [up, y_state, score + v] + states2 + [state2.up, y_state2, state2.score],
+            dtype=torch.float32)) * 300

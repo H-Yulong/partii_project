@@ -1,6 +1,11 @@
 import yahtzee_agent as y
 import lib
 
+'''
+Single evaluator 2:
+Playing a fixed games
+'''
+
 
 def generateGame():
     return [lib.roll([]) for _ in range(13)]

@@ -10,9 +10,10 @@ agent3 = y.SingleBlindAgent()
 agent4 = y.SingleBestAgent("Data/esti_table.txt")
 '''
 
-agent2 = y.SingleBestAgent("Data/output.txt")
-agent = y.NNTwoPlayer("Data/two_player3.pt")
-#agent2 = y.SingleBestAgent("Data/output.txt")
+agent = y.NNTwoPlayer("../Data/two_player3.pt", 32,32)
+agent2 = y.SingleBlindAgent()
+#agent2 = y.TableBasedTwoPlayer()
+#agent2 = y.SingleBestAgent("../Data/output.txt")
 
 
 log = []
@@ -25,6 +26,7 @@ for i in range(episodes):
 
     #s1.roll([6, 6, 4, 3, 1])
 
+    #'''
     while not s2.gameover:
         while s1.rolls > 0:
             agent.move(s1,s2)
@@ -35,6 +37,11 @@ for i in range(episodes):
             agent2.move(s2)
         if not s2.gameover:
             agent2.move(s2)
+    if not s1.gameover:
+        print("Wrong")
+        s1.printAll()
+        break
+    #'''
 
     log.append(s1.score)
     log2.append(s2.score)

@@ -1,7 +1,3 @@
-import struct
+import lib
 
-dictionary = []
-
-dictionary.append(1)
-
-print(0 == b"")
+print(lib.code([1], 0))
