@@ -11,6 +11,7 @@ This is the second two-player agent
 Training against the optimal solitaire agent
 '''
 
+
 def roll(kept):
     result = [0, 0, 0, 0, 0]
     length = len(kept)
@@ -117,13 +118,11 @@ def main():
                       nn.Linear(hidden_size2, output_size, False),
                       nn.Sigmoid())
 
-    #m.load_state_dict(torch.load("Data/two_player4.pt"))
+    # m.load_state_dict(torch.load("Data/two_player4.pt"))
 
     for p in m.parameters():
         # p.data = torch.zeros_like(p)
         p.grad = torch.zeros_like(p)
-
-
 
     print("training...")
 

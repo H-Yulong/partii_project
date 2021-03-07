@@ -1,7 +1,7 @@
 import random
 import torch
 import torch.nn as nn
-import test as util
+import lib as util
 import torch.nn.functional as F
 import numpy
 
@@ -77,7 +77,8 @@ def main():
     hidden_size1 = 128
     hidden_size2 = 32
     output_size = 1
-    a = 0.3
+    a = 0.1
+    g = 0.5
     l = 0.7
     episodes = 100
 
@@ -239,7 +240,7 @@ def main():
                 if (len(empty)) == 1:
                     delta = current_score / 1575 - out
                 else:
-                    delta = m(input_format(next_state, next_up, next_ystate)) - out
+                    delta = g * m(input_format(next_state, next_up, next_ystate)) - out
 
                 for p in m.parameters():
                     p += a * delta * p.grad

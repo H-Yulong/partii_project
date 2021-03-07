@@ -76,10 +76,21 @@ def main():
     input_size = 32
     hidden_size1 = 32
     hidden_size2 = 32
+    hidden_size3 = 32
     output_size = 1
-    a = 0.01
     l = 0.7
-    episodes = 1000
+    g = 0.5
+    a = 0.01
+    episodes = 500
+    score_weight = 100
+
+    # Setup Network
+    m = nn.Sequential(nn.Linear(input_size, hidden_size1, False),
+                      nn.Sigmoid(),
+                      nn.Linear(hidden_size1, hidden_size2, False),
+                      nn.Sigmoid(),
+                      nn.Linear(hidden_size2, output_size, False)
+                      )
 
     cache = [[[]], util.dicePatterns(1), util.dicePatterns(2), util.dicePatterns(3), util.dicePatterns(4),
              util.dicePatterns(5)]
@@ -94,12 +105,7 @@ def main():
         Highest possible score: 1575
     '''
 
-    m = nn.Sequential(nn.Linear(input_size, hidden_size1, False),
-                      nn.Sigmoid(),
-                      nn.Linear(hidden_size1, hidden_size2, False),
-                      nn.Sigmoid(),
-                      nn.Linear(hidden_size2, output_size, False),
-                      nn.Sigmoid())
+    #m.load_state_dict(torch.load("Data/two_player2.pt"))
 
     for p in m.parameters():
         #p.data = torch.zeros_like(p)
@@ -237,10 +243,10 @@ def main():
             out = m(input_format(state, up, y_state, current_score,state2, up2, y_state2, current_score2))
             out.backward()
             with torch.no_grad():
-                reward = (next_score - current_score2) / 1575
+                reward = (next_score - current_score2) / score_weight
                 if current_score > current_score2:
                     reward = reward
-                delta = reward + m(input_format(next_state, next_up, next_ystate, next_score, state2, up2, y_state2, current_score2)) - out
+                delta = reward + g * m(input_format(next_state, next_up, next_ystate, next_score, state2, up2, y_state2, current_score2)) - out
 
                 for p in m.parameters():
                     p += a * delta * p.grad
@@ -368,10 +374,10 @@ def main():
                     else:
                         delta = 0 - out
                 else:
-                    reward = (next_score2 - current_score) / 1575
+                    reward = (next_score2 - current_score) / score_weight
                     if current_score2 > current_score:
                         reward = reward
-                    delta = reward + m(input_format(next_state2, next_up2, next_ystate2, next_score2, state, up, y_state, current_score)) - out
+                    delta = reward + g * m(input_format(next_state2, next_up2, next_ystate2, next_score2, state, up, y_state, current_score)) - out
 
                 for p in m.parameters():
                     p += a * delta * p.grad

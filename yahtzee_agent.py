@@ -243,6 +243,30 @@ class SingleBlindAgent(SinglePlayerAgent):
         return v
 
 
+class SingleReallyBlindAgent(SinglePlayerAgent):
+
+    def __init__(self):
+        SinglePlayerAgent.__init__(self,"SingleReallyBlind")
+
+    def evaluate(self, dice, up, cats, cat):
+        v, new_cat, new_up = lib.fillScore(dice, up, cats, cat)
+        return v
+
+    def move(self, state):
+        if state.rolls < 2:
+            SinglePlayerAgent.move(self, state)
+        else:
+            count = [0,0,0,0,0,0]
+            for d in state.dice:
+                count[d-1] += 1
+
+            num = count.index(max(count)) + 1
+
+            kept = [num for _ in range (count[num - 1])]
+            state.roll(kept)
+
+
+
 class Dist:
     def __init__(self, min, max, dist):
         self.min = min
@@ -377,7 +401,6 @@ class TwoPlayerAgent:
 
         raise Exception("Invalid roll number: greater than 2")
 
-
 class TableBasedTwoPlayer(TwoPlayerAgent):
 
     def __init__(self):
@@ -438,14 +461,14 @@ class TableBasedTwoPlayer(TwoPlayerAgent):
 class NNTwoPlayer(TwoPlayerAgent):
 
     def __init__(self, path, hidden_size1, hidden_size2):
-        TwoPlayerAgent.__init__(self, "TableBasedTwoPlayer")
+        TwoPlayerAgent.__init__(self, "NNTwoPlayer")
         self.model = nn.Sequential(nn.Linear(32, hidden_size1, False),
                                    nn.Sigmoid(),
                                    nn.Linear(hidden_size1, hidden_size2, False),
                                    nn.Sigmoid(),
                                    nn.Linear(hidden_size2, 1, False),
                                    nn.Sigmoid())
-        self.model.load_state_dict(torch.load(path))
+        self.model.load_state_dict(torch.load(path),strict=False)
 
     def evaluate(self, dice, up, cats, cat, score, state2):
         v, new_cat, up = lib.fillScore(dice, up, cats, cat)
@@ -474,7 +497,6 @@ class NNTwoPlayer(TwoPlayerAgent):
         return  self.model(torch.tensor(
             states + [up, y_state, score + v] + states2 + [state2.up, y_state2, state2.score],
             dtype=torch.float32))
-
 
 class NNTwoPlayer2(TwoPlayerAgent):
     def __init__(self,path):
@@ -519,3 +541,28 @@ class NNTwoPlayer2(TwoPlayerAgent):
         return  v + self.model(torch.tensor(
             states + [up, y_state, score + v] + states2 + [state2.up, y_state2, state2.score],
             dtype=torch.float32)) * 300
+
+class MixedTwoPlayer(TwoPlayerAgent):
+
+    def __init__(self):
+        TwoPlayerAgent.__init__(self, "MixedTwoPlayer")
+        self.dictionary = {"full": 0}
+        with open("../Data/output.txt") as f:
+            for line in f:
+                (key, val) = line.split(", ")
+                self.dictionary[int(key)] = float(val)
+
+    def evaluate(self, dice, up, cats, cat, score, state2):
+        self_exp = score + self.dictionary.get(lib.code(cats, up))
+        oppo_exp = state2.score + self.dictionary.get(lib.code(state2.cats, state2.up))
+
+        v, new_cat, up = lib.fillScore(dice, up, cats, cat)
+        if self_exp >= oppo_exp :
+            return v + self.dictionary.get(lib.code(new_cat, up))
+        else:
+            if (score + v + self.dictionary.get(lib.code(new_cat, up))) > oppo_exp:
+                return 1
+            else:
+                return 0
+
+

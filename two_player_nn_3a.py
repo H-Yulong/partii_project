@@ -21,8 +21,8 @@ def generate_features(num):
 
     result = []
     for _ in range(num):
-        key,val = random.choice(listd)
-        result.append([key,val])
+        key, val = random.choice(listd)
+        result.append([key, val])
 
     return result
 
@@ -31,7 +31,7 @@ def input_format(n, fill_right):
     # Extract up
     up = n % 64
     n = n // 64
-    cats = [0,0,0,0,0,0,0,0,0,0,0,0,0]
+    cats = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     y_state = 0
 
     # Extract Yahtzee state
@@ -47,7 +47,7 @@ def input_format(n, fill_right):
     n = n // 2
 
     # Extract other states
-    for i in range(1,13):
+    for i in range(1, 13):
         cats[i] = n % 2
         n = n // 2
 
@@ -65,7 +65,7 @@ def main():
     hidden_size2 = 64
     hidden_size3 = 32
     output_size = 1
-    a = 0.01
+    a = 0.1
     episodes = 10000
     test_state = 0
 
@@ -83,7 +83,7 @@ def main():
                       nn.Tanh())
 
     for p in m.parameters():
-        #p.data = torch.zeros_like(p)
+        # p.data = torch.zeros_like(p)
         p.grad = torch.zeros_like(p)
 
     print("training...")
@@ -91,7 +91,7 @@ def main():
     # Supervised learning
     for i in range(episodes):
         state = features[i][0]
-        val = features[i][1] / 300
+        val = features[i][1] / 300 + numpy.random.normal(0,0.5)
 
         loss = (val - m(input_format(state, True))) ** 2
         loss.backward()
@@ -100,8 +100,8 @@ def main():
                 p -= p.grad * a
             m.zero_grad()
 
-        print(loss)
-        #print(m(input_format(test_state, True)))
+        #print(loss)
+        print(m(input_format(test_state, True)))
 
     torch.save(m.state_dict(), "Data/two_player4.pt")
 
