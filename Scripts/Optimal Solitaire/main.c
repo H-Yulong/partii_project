@@ -371,7 +371,7 @@ int* append(int* cats, int c, int size){
 	return result;
 }
 
-double evaluate(int* dice, int cat, int up, int* cats, int cats_size, double* dictionary){
+double evaluate(int* dice, int cat, int up, int* cats, int cats_size, double* dictionary, double* dictionary_sqr, double* exp_squared){
 	// ASSERT: size is the cats_size of array that cats points to.
 	// ASSERT: problematic parameters won't be used. If you see "Segmentation Fault", that's probably your fault.
 
@@ -459,10 +459,15 @@ double evaluate(int* dice, int cat, int up, int* cats, int cats_size, double* di
      	}
      }
 
+    *exp_squared = score * score;
+    double score_copy = score;
+
     int* new_cats = append(cats, cat, cats_size);
     int c = code(new_cats, up, cats_size+1);
     if (c != -1){
     	score += dictionary[c];
+        // E((X+c)^2) = E(X^2) + 2cE(X) + d^2
+        *exp_squared += dictionary_sqr[c] + 2 * dictionary[c] * score_copy;
     }
     free(new_cats);
     return score;
@@ -535,122 +540,155 @@ int find(int** lib, int* row, int row_size, int entries){
 	return -1;
 }
 
-double expectation(int*** cache, int* empty, int up, int* cats, int cats_size, double* dictionary){
+double expectation(int*** cache, int* empty, int up, int* cats, int cats_size, double* dictionary, double* dictionary_sqr, double* exp_squared){
 	int cache_sizes[] = {1,6,21,56,126,252};
 	int cache_indexes[] = {0,1,7,28,84,210};
 
     double R3[252];
+    double R3S[252];
     // Evaluate R3
     for(int i=0; i<252; i++){
     	int* d = cache[5][i];
+        double exp_sqr = 0.0;
     	double max_exp = 0.0;
+        double max_exp_sqr = 0.0;
 
     	for(int j=0; j<(13 - cats_size); j++){
-    		double score = evaluate(d, empty[j], up, cats, cats_size, dictionary);
+    		double score = evaluate(d, empty[j], up, cats, cats_size, dictionary, dictionary_sqr, &exp_sqr);
     		if (score > max_exp){
     			max_exp = score;
+                max_exp_sqr = exp_sqr;
     		}
     	}
 
     	R3[i] = max_exp;
-    } 
-
+        R3S[i] = max_exp_sqr;
+    }
 
     // Evaluate K2
     double K2[462];
+    double K2S[462];
     for (int i=0; i<252; i++){
     	K2[210+i] = R3[i];
+        K2S[210+i] = R3S[i];
     }
     for (int k=4; k>=0; k = k-1){
     	for (int i=0; i<cache_sizes[k]; i++){
     		double exp = 0;
+            double exp_sqr = 0;
     		for (int e=1; e<7; e++){
     			int* new_d = extendDice(cache[k][i],e,k);
     			//printf("%f\n",K2[cache_indexes[k+1] + find(cache[k+1], new_d, k, cache_sizes[k+1])]);
     			exp += K2[cache_indexes[k+1] + find(cache[k+1], new_d, k+1, cache_sizes[k+1])];
+                exp_sqr += K2S[cache_indexes[k+1] + find(cache[k+1], new_d, k+1, cache_sizes[k+1])];
     			free(new_d);
     		}
     		K2[cache_indexes[k]+i] = exp / 6.0;
+            K2S[cache_indexes[k]+i] = exp_sqr / 6.0;
     	}
     }
 
     // Evaluate R2
     double R2[462];
+    double R2S[462];
     R2[0] = K2[0];
+    R2S[0] = K2S[0];
     for (int k=1; k<6; k++){
     	for(int j=0; j<cache_sizes[k]; j++){
     		double max_exp = K2[cache_indexes[k] + j];
+            double max_exp_sqr = K2S[cache_indexes[k] + j];
     		for (int e=1; e<7; e++){
     			int* r = removeDice(cache[k][j], e, k);
     			if (r != NULL){
     				double val = R2[cache_indexes[k-1] + find(cache[k-1], r, k-1, cache_sizes[k-1])];
     				if (val > max_exp){
     					max_exp = val;
+                        max_exp_sqr = R2S[cache_indexes[k-1] + find(cache[k-1], r, k-1, cache_sizes[k-1])];
     				}
     			}
     			free(r);
     		}
     		R2[cache_indexes[k]+j] = max_exp;
+            R2S[cache_indexes[k]+j] = max_exp_sqr;
     	}    	
     }
 
     // Evaluate K1
     double K1[462];
+    double K1S[462];
     for (int i=0; i<252; i++){
     	K1[210+i] = R2[210+i];
+        K1S[210+i] = R2S[210+i];
     }
     for (int k=4; k>=0; k = k-1){
     	for (int i=0; i<cache_sizes[k]; i++){
     		double exp = 0;
+            double exp_sqr = 0;
     		for (int e=1; e<7; e++){
     			int* new_d = extendDice(cache[k][i],e,k);
     			exp += K1[cache_indexes[k+1] + find(cache[k+1], new_d, k+1, cache_sizes[k+1])];
+                exp_sqr += K1S[cache_indexes[k+1] + find(cache[k+1], new_d, k+1, cache_sizes[k+1])];
     			free(new_d);
     		}
     		K1[cache_indexes[k]+i] = exp / 6.0;
+            K1S[cache_indexes[k]+i] = exp_sqr / 6.0;
     	}
     }
 
 	// Evaluate R1
     double R1[462];
+    double R1S[462];
     R1[0] = K1[0];
+    R1S[0] = K1S[0];
     for (int k=1; k<6; k++){
     	for(int j=0; j<cache_sizes[k]; j++){
     		double max_exp = K1[cache_indexes[k] + j];
+            double max_exp_sqr = K1S[cache_indexes[k] + j];
     		for (int e=1; e<7; e++){
     			int* r = removeDice(cache[k][j], e, k);
     			if (r != NULL){
     				double val = R1[cache_indexes[k-1] + find(cache[k-1], r, k-1, cache_sizes[k-1])];
     				if (val > max_exp){
     					max_exp = val;
+                        max_exp_sqr = R1S[cache_indexes[k-1] + find(cache[k-1], r, k-1, cache_sizes[k-1])];
     				}
     			}
     			free(r);
     		}
     		R1[cache_indexes[k]+j] = max_exp;
+            R1S[cache_indexes[k]+j] = max_exp_sqr;
     	}    	
     }
 
 
-
+    
     double exp = 0.0;
     for (int i=0; i<252; i++){
     	exp += prRoll(cache[5][i]) * R1[210+i];
     }
 
-    return exp;
+    *exp_squared = 0.0;
+
+    for (int i=0; i<252; i++){
+    	*exp_squared += prRoll(cache[5][i]) * R1S[210+i];
+    }
+
+    //printf("%.3f \n", *exp_squared - exp * exp);
 
 	/*
-    for(int i=0; i<462; i++){
-    	printf("%d %f\n",i,K1[i]);
+    for(int i=210; i<210+252; i++){
+    	printf("%d, %f, %f\n",i,R2[i], R2S[i]);
     }
-    */
+    //*/
+
+    return exp;
 }
 
 int main(){
 	// Initializations
 	int** cache[6];
 	double* dict = calloc(1048383,sizeof(double));
+    double* sqr_dict = calloc(1048383,sizeof(double));
 	int acc=0, choose_size[] = {1,14,90,352,935,1782,2508,2640,2079,1210,506,144,25};
 	int full[] = {12,11,10,9,8,7,6,5,4,3,2,1,0};
 	for(int i=0; i<6; i++){
@@ -670,7 +708,8 @@ int main(){
 	///*
 	for(int i=12; i>=0; i = i-1){
 		int** states = choosePatterns(i);
-		for (int j=0; j<choose_size[i]; j++){
+		//for (int j=0; j<1; j++){
+        for (int j=0; j<choose_size[i]; j++){
 			int empty[13-i];
 			int p=0;
 			for(int k=0; k<12; k++){
@@ -687,20 +726,27 @@ int main(){
 				///*
 				FILE* fp1 = fopen("D:\\Prog\\partii_project\\output.txt","a");
 				FILE* fp2 = fopen("D:\\Prog\\partii_project\\output_readable.txt","a");
-				
-				double exp = expectation(cache, empty, u, states[j], i, dict);
+
+				double exp_squared = 0.0;
+				double exp = expectation(cache, empty, u, states[j], i, dict, sqr_dict, &exp_squared);
 				
 				int c = code(states[j], u, i);
-				dict[c] = exp;
+				dict[c] = exp; 
+                sqr_dict[c] = exp_squared;
+
+                if ((exp_squared - exp * exp) < 0){
+                    printf("Failed!\n");
+                    return -1;
+                }
                 
-                fprintf(fp1,"%d, %.7f\n",c,exp);
+                fprintf(fp1,"%d, %.7f, %.7f\n", c, exp, exp_squared - exp * exp);
 
                 fprintf(fp2,"[");
                 for(int k=0; k<(13-i); k++){
                 	fprintf(fp2,"%d ", empty[k]);
                 }
-                fprintf(fp2,"] %d %.3f\n", u, exp);
-                
+                fprintf(fp2,"] %d %.3f %.3f\n", u, exp, exp_squared - exp * exp);
+
                 fclose(fp1);
                 fclose(fp2);
                 

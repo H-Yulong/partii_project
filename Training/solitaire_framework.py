@@ -5,6 +5,8 @@ import lib as util
 import torch.nn.functional as F
 import numpy
 
+FACTOR = 500
+
 
 def roll(kept):
     result = [0, 0, 0, 0, 0]
@@ -67,7 +69,7 @@ def state_evaluate(dice, cat, up, state, y_state, model):
                 next_y_state = 0
 
     if model:
-        return score + model(input_format(next_state, up, next_y_state)).item()
+        return score + model(input_format(next_state, up, next_y_state)).item() * FACTOR
     else:
         return score
 
@@ -77,10 +79,11 @@ def main():
     hidden_size1 = 128
     hidden_size2 = 32
     output_size = 1
-    a = 0.1
-    g = 0.5
-    l = 0.7
-    episodes = 100
+    a = 0.04
+    g = 0.99
+    l = 0.41
+    episodes = 1000
+
 
     cache = [[[]], util.dicePatterns(1), util.dicePatterns(2), util.dicePatterns(3), util.dicePatterns(4),
              util.dicePatterns(5)]
@@ -237,8 +240,11 @@ def main():
             out = m(input_format(state, up, y_state))
             out.backward()
             with torch.no_grad():
+                reward = current_score / FACTOR
                 if (len(empty)) == 1:
-                    delta = current_score / 1575 - out
+                    if next_up == 63:
+                        reward += 5
+                    delta = reward - out
                 else:
                     delta = g * m(input_format(next_state, next_up, next_ystate)) - out
 
@@ -261,7 +267,7 @@ def main():
     '''
     print(m(input_format([1,1,1,1,1,1,1,1,1,1,1,1,0], 0, -1)).item())
 
-    torch.save(m.state_dict(), "Data/new_module4.pt")
+    torch.save(m.state_dict(), "Data/new_module5a.pt")
 
 
 

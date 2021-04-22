@@ -15,7 +15,7 @@ def evaluate(dice, up, cats, cat, dictionary):
 
 def case_evaluate(cats,up):
     # Params
-    nn = y.SingleNNAgent("../Data/new_module4.pt")
+    nn = y.SingleNNAgent("../Data/new_module5c.pt")
 
     # Load dictionary
     dictionary = {"full": 0}

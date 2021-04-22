@@ -44,6 +44,18 @@ def code(cats, up):
     return result
 
 
+def decode(c):
+    up = c % 64
+    c = c // 64
+    cats = []
+    for i in range(14):
+        x = c % 2
+        if x > 0:
+            cats.append(x - 1)
+        c = c // 2
+    return cats, up
+
+
 def extend(dice, d):
     result = list(dice)
     result.append(d)
@@ -307,3 +319,10 @@ def choosePatterns(n, r):
     # print(len(result))
 
     return result
+
+
+def null_get(dic, key):
+    if key in dic.keys():
+        return dic[key]
+    else:
+        return 0

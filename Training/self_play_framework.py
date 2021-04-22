@@ -76,20 +76,20 @@ def main():
     input_size = 32
     hidden_size1 = 32
     hidden_size2 = 32
-    hidden_size3 = 32
     output_size = 1
-    l = 0.7
-    g = 0.5
-    a = 0.01
+    l = 0.55
+    g = 0.35
+    a = 0.4
     episodes = 500
     score_weight = 100
 
     # Setup Network
-    m = nn.Sequential(nn.Linear(input_size, hidden_size1, False),
+    m = nn.Sequential(nn.Linear(input_size, hidden_size1, True),
                       nn.Sigmoid(),
-                      nn.Linear(hidden_size1, hidden_size2, False),
+                      nn.Linear(hidden_size1, hidden_size2, True),
                       nn.Sigmoid(),
-                      nn.Linear(hidden_size2, output_size, False)
+                      nn.Linear(hidden_size2, output_size, True),
+                      nn.Sigmoid()
                       )
 
     cache = [[[]], util.dicePatterns(1), util.dicePatterns(2), util.dicePatterns(3), util.dicePatterns(4),
@@ -235,6 +235,7 @@ def main():
             next_score = current_score + state_evaluate(dice, max_cat, up, state, y_state, current_score,
                                             state2, up2, y_state2, current_score2, None)
 
+            '''
             # Do the TD-Lambda thing
             with torch.no_grad():
                 for p in m.parameters():
@@ -251,6 +252,7 @@ def main():
                 for p in m.parameters():
                     p += a * delta * p.grad
 
+            '''
             state = next_state
             up = next_up
             y_state = next_ystate
@@ -374,7 +376,7 @@ def main():
                     else:
                         delta = 0 - out
                 else:
-                    reward = (next_score2 - current_score) / score_weight
+                    reward = 0 #(next_score2 - current_score) / score_weight
                     if current_score2 > current_score:
                         reward = reward
                     delta = reward + g * m(input_format(next_state2, next_up2, next_ystate2, next_score2, state, up, y_state, current_score)) - out
@@ -393,7 +395,7 @@ def main():
         print(m(input_format([0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0], 0, 0, 100,
                              [0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0], 0, 0, 67)))
 
-    torch.save(m.state_dict(), "Data/two_player2.pt")
+    torch.save(m.state_dict(), "Data/two_player_selfplay.pt")
 
 
 main()

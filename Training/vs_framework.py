@@ -92,10 +92,11 @@ def main():
     hidden_size1 = 32
     hidden_size2 = 32
     output_size = 1
-    a = 0.01
-    l = 0.7
-    g = 0.5
-    episodes = 1000
+    a = 0.04 #random.random() / 10
+    l = 0.4 #random.uniform(0.2, 0.8)
+    g = 0.99 #random.uniform(0.2, 0.8)
+    print(a, l, g)
+    episodes = 500
     score_weight = 100
 
     cache = [[[]], lib.dicePatterns(1), lib.dicePatterns(2), lib.dicePatterns(3), lib.dicePatterns(4),
@@ -111,11 +112,11 @@ def main():
         Highest possible score: 1575
     '''
 
-    m = nn.Sequential(nn.Linear(input_size, hidden_size1, False),
+    m = nn.Sequential(nn.Linear(input_size, hidden_size1, True),
                       nn.Sigmoid(),
-                      nn.Linear(hidden_size1, hidden_size2, False),
+                      nn.Linear(hidden_size1, hidden_size2, True),
                       nn.Sigmoid(),
-                      nn.Linear(hidden_size2, output_size, False),
+                      nn.Linear(hidden_size2, output_size, True),
                       nn.Sigmoid())
 
     # m.load_state_dict(torch.load("Data/two_player4.pt"))
@@ -289,7 +290,7 @@ def main():
         print(m(input_format([0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0], 0, 0, 100,
                              [0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0], 0, 0, 67)))
 
-    torch.save(m.state_dict(), "Data/two_player3.pt")
+    torch.save(m.state_dict(), "Data/two_player_new.pt")
 
 
 main()

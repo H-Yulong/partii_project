@@ -2,18 +2,16 @@ import lib
 import yahtzee_agent as y
 
 agent = y.SingleNNAgent("Data/new_module4.pt")
-#agent = y.SingleReallyBlindAgent()
-score = []
+#agent = y.SingleBlindAgent()
 
-for i in range(1000):
-    state = y.GameState(cats=[], log=False)
-    while not state.gameover:
-        agent.move(state)
-    score.append(state.score)
-    print(i)
-print(score)
-print(sum(score) / 1000, max(score), min(score))
+state1 = y.GameState(cats=[],log=True)
 
-f = open("nn_data.txt", "w")
-f.write(str(score))
+while not state1.gameover:
+    while state1.rolls > 0:
+        agent.move(state1)
+    if not state1.gameover:
+        agent.move(state1)
+
+
+
 
