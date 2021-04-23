@@ -1,9 +1,18 @@
 import random
 import torch
 import torch.nn as nn
-import lib as util
-import torch.nn.functional as F
-import numpy
+import lib
+
+INPUT_SIZE = 32
+HIDDEN_SIZE1 = 32
+HIDDEN_SIZE2 = 32
+OUTPUT_SIZE = 1
+LAMBDA = 0.55
+GAMMA = 0.35
+ALPHA = 0.4
+EPISODES = 10
+SCORE_WEIGHT = 100
+OUTPUT_PATH = "../Data/Neural Network/output.pt"
 
 
 def roll(kept):
@@ -23,8 +32,8 @@ def input_format(states1, up1, y_state1, score1, states2, up2, y_state2, score2)
 
 def state_evaluate(dice, cat, up, state, y_state, score1, state2, up2, y_state2, score2, model):
     # Initialization
-    evals = [util.yahtzee, util.ones, util.twos, util.threes, util.fours, util.fives, util.sixes, util.three_of_a_kind,
-             util.four_of_a_kind, util.fullhouse, util.small_straight, util.large_straight, util.chance]
+    evals = [lib.yahtzee, lib.ones, lib.twos, lib.threes, lib.fours, lib.fives, lib.sixes, lib.three_of_a_kind,
+             lib.four_of_a_kind, lib.fullhouse, lib.small_straight, lib.large_straight, lib.chance]
 
     # First evaluation
     score = evals[cat](dice, up)
@@ -36,7 +45,7 @@ def state_evaluate(dice, cat, up, state, y_state, score1, state2, up2, y_state2,
             up = 63
 
     # Joker rule and Yahtzee bonus
-    if util.yahtzee(dice, up) > 0:
+    if lib.yahtzee(dice, up) > 0:
         # In the case of Yahtzee is filled:
         if (y_state == 1) or (y_state == -1):
             # If Yahtzee is filled with 50, get a bonus of 100.
@@ -73,27 +82,17 @@ def state_evaluate(dice, cat, up, state, y_state, score1, state2, up2, y_state2,
 
 
 def main():
-    input_size = 32
-    hidden_size1 = 32
-    hidden_size2 = 32
-    output_size = 1
-    l = 0.55
-    g = 0.35
-    a = 0.4
-    episodes = 500
-    score_weight = 100
-
     # Setup Network
-    m = nn.Sequential(nn.Linear(input_size, hidden_size1, True),
+    m = nn.Sequential(nn.Linear(INPUT_SIZE, HIDDEN_SIZE1, True),
                       nn.Sigmoid(),
-                      nn.Linear(hidden_size1, hidden_size2, True),
+                      nn.Linear(HIDDEN_SIZE1, HIDDEN_SIZE2, True),
                       nn.Sigmoid(),
-                      nn.Linear(hidden_size2, output_size, True),
+                      nn.Linear(HIDDEN_SIZE2, OUTPUT_SIZE, True),
                       nn.Sigmoid()
                       )
 
-    cache = [[[]], util.dicePatterns(1), util.dicePatterns(2), util.dicePatterns(3), util.dicePatterns(4),
-             util.dicePatterns(5)]
+    cache = [[[]], lib.dicePatterns(1), lib.dicePatterns(2), lib.dicePatterns(3), lib.dicePatterns(4),
+             lib.dicePatterns(5)]
     full = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     '''
     State encoding:
@@ -105,15 +104,15 @@ def main():
         Highest possible score: 1575
     '''
 
-    #m.load_state_dict(torch.load("Data/two_player2.pt"))
+    # m.load_state_dict(torch.load("Data/two_player2.pt"))
 
     for p in m.parameters():
-        #p.data = torch.zeros_like(p)
+        # p.data = torch.zeros_like(p)
         p.grad = torch.zeros_like(p)
 
     print("training...")
 
-    for episode in range(episodes):
+    for episode in range(EPISODES):
         # Clear the trace
         for p in m.parameters():
             p.grad = torch.zeros_like(p)
@@ -143,7 +142,8 @@ def main():
             for d in cache[5]:
                 max_exp = 0
                 for e in empty:
-                    score = state_evaluate(d, e, up, state, y_state, current_score, state2, up2, y_state2, current_score2, m)
+                    score = state_evaluate(d, e, up, state, y_state, current_score, state2, up2, y_state2,
+                                           current_score2, m)
                     if score > max_exp:
                         max_exp = score
                 R3[cache[5].index(d)] = max_exp
@@ -155,7 +155,7 @@ def main():
                 for d in cache[k]:
                     exp = 0
                     for e in range(1, 7):
-                        new_d = util.extend(d, e)
+                        new_d = lib.extend(d, e)
                         exp += K2[cache[k + 1].index(new_d) * 10 + k + 1]
                     K2[cache[k].index(d) * 10 + k] = exp / 6
 
@@ -164,7 +164,7 @@ def main():
                 for d in cache[k]:
                     max_exp = K2.get(cache[k].index(d) * 10 + k)
                     for e in range(1, 7):
-                        r = util.remove(d, e)
+                        r = lib.remove(d, e)
                         if r or (r == []):
                             max_exp = max(max_exp, R2[cache[k - 1].index(r) * 10 + k - 1])
                     R2[cache[k].index(d) * 10 + k] = max_exp
@@ -176,7 +176,7 @@ def main():
                 for d in cache[k]:
                     exp = 0
                     for e in range(1, 7):
-                        new_d = util.extend(d, e)
+                        new_d = lib.extend(d, e)
                         exp += K1[cache[k + 1].index(new_d) * 10 + k + 1]
                     K1[cache[k].index(d) * 10 + k] = exp / 6
 
@@ -187,7 +187,7 @@ def main():
             for key, val in K1.items():
                 d = cache[key % 10][key // 10]
 
-                if util.subset(d, dice):
+                if lib.subset(d, dice):
                     if val > max_exp:
                         max_exp = val
                         max_keep = d
@@ -199,7 +199,7 @@ def main():
             for key, val in K2.items():
                 d = cache[key % 10][key // 10]
 
-                if util.subset(d, dice):
+                if lib.subset(d, dice):
                     if val > max_exp:
                         max_exp = val
                         max_keep = d
@@ -227,13 +227,13 @@ def main():
                     next_up = 63
 
             if max_cat == 0:
-                if util.yahtzee(dice, 0) > 0:
+                if lib.yahtzee(dice, 0) > 0:
                     next_ystate = 1
                 else:
                     next_ystate = -1
 
             next_score = current_score + state_evaluate(dice, max_cat, up, state, y_state, current_score,
-                                            state2, up2, y_state2, current_score2, None)
+                                                        state2, up2, y_state2, current_score2, None)
 
             '''
             # Do the TD-Lambda thing
@@ -270,7 +270,8 @@ def main():
             for d in cache[5]:
                 max_exp = 0
                 for e in empty:
-                    score = state_evaluate(d, e, up2, state2, y_state2, current_score2, state, up, y_state, current_score, m)
+                    score = state_evaluate(d, e, up2, state2, y_state2, current_score2, state, up, y_state,
+                                           current_score, m)
                     if score > max_exp:
                         max_exp = score
                 R3[cache[5].index(d)] = max_exp
@@ -282,7 +283,7 @@ def main():
                 for d in cache[k]:
                     exp = 0
                     for e in range(1, 7):
-                        new_d = util.extend(d, e)
+                        new_d = lib.extend(d, e)
                         exp += K2[cache[k + 1].index(new_d) * 10 + k + 1]
                     K2[cache[k].index(d) * 10 + k] = exp / 6
 
@@ -291,7 +292,7 @@ def main():
                 for d in cache[k]:
                     max_exp = K2.get(cache[k].index(d) * 10 + k)
                     for e in range(1, 7):
-                        r = util.remove(d, e)
+                        r = lib.remove(d, e)
                         if r or (r == []):
                             max_exp = max(max_exp, R2[cache[k - 1].index(r) * 10 + k - 1])
                     R2[cache[k].index(d) * 10 + k] = max_exp
@@ -303,7 +304,7 @@ def main():
                 for d in cache[k]:
                     exp = 0
                     for e in range(1, 7):
-                        new_d = util.extend(d, e)
+                        new_d = lib.extend(d, e)
                         exp += K1[cache[k + 1].index(new_d) * 10 + k + 1]
                     K1[cache[k].index(d) * 10 + k] = exp / 6
 
@@ -314,7 +315,7 @@ def main():
             for key, val in K1.items():
                 d = cache[key % 10][key // 10]
 
-                if util.subset(d, dice):
+                if lib.subset(d, dice):
                     if val > max_exp:
                         max_exp = val
                         max_keep = d
@@ -326,7 +327,7 @@ def main():
             for key, val in K2.items():
                 d = cache[key % 10][key // 10]
 
-                if util.subset(d, dice):
+                if lib.subset(d, dice):
                     if val > max_exp:
                         max_exp = val
                         max_keep = d
@@ -354,18 +355,18 @@ def main():
                     next_up2 = 63
 
             if max_cat2 == 0:
-                if util.yahtzee(dice, 0) > 0:
+                if lib.yahtzee(dice, 0) > 0:
                     next_ystate2 = 1
                 else:
                     next_ystate2 = -1
 
             next_score2 = current_score2 + state_evaluate(dice, max_cat2, up2, state2, y_state2, current_score2,
-                                            state, up, y_state, current_score, None)
+                                                          state, up, y_state, current_score, None)
 
             # Do the TD-Lambda thing
             with torch.no_grad():
                 for p in m.parameters():
-                    p.grad *= l
+                    p.grad *= LAMBDA
 
             out = m(input_format(state2, up2, y_state2, current_score2, state, up, y_state, current_score))
             out.backward()
@@ -376,26 +377,28 @@ def main():
                     else:
                         delta = 0 - out
                 else:
-                    reward = 0 #(next_score2 - current_score) / score_weight
+                    reward = 0  # (next_score2 - current_score) / score_weight
                     if current_score2 > current_score:
                         reward = reward
-                    delta = reward + g * m(input_format(next_state2, next_up2, next_ystate2, next_score2, state, up, y_state, current_score)) - out
+                    delta = reward + GAMMA * m(
+                        input_format(next_state2, next_up2, next_ystate2, next_score2, state, up, y_state,
+                                     current_score)) - out
 
                 for p in m.parameters():
-                    p += a * delta * p.grad
+                    p += ALPHA * delta * p.grad
 
             state2 = next_state2
             up2 = next_up2
             y_state2 = next_ystate2
             current_score2 = next_score2
 
-        print(episode, " / ", episodes)
+        print(episode, " / ", EPISODES)
         print(m(input_format([0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0], 0, 0, 67,
                              [0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0], 0, 0, 100)))
         print(m(input_format([0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0], 0, 0, 100,
                              [0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0], 0, 0, 67)))
 
-    torch.save(m.state_dict(), "Data/two_player_selfplay.pt")
+    torch.save(m.state_dict(), OUTPUT_PATH)
 
 
 main()

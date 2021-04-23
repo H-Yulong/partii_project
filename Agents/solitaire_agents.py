@@ -6,6 +6,7 @@ from scipy.stats import norm
 from math import sqrt
 import random
 
+
 class SolitaireAgent():
     def __init__(self, name):
         self.name = name
@@ -39,7 +40,7 @@ class SolitaireAgent():
             state.fill(max_cat)
             if not state.gameover:
                 state.rolls = 3
-                #state.roll([])
+                # state.roll([])
             return
 
         R3 = {}
@@ -77,7 +78,7 @@ class SolitaireAgent():
                         max_keep = d
             if (lib.subset(max_keep, state.dice)) and lib.subset(state.dice, max_keep):
                 state.rolls = 0
-                #self.move(state)
+                # self.move(state)
             else:
                 state.roll(max_keep)
 
@@ -117,11 +118,11 @@ class SolitaireAgent():
                         max_keep = d
             if (lib.subset(max_keep, state.dice)) and lib.subset(state.dice, max_keep):
                 state.rolls = 0
-                #self.move(state)
+                # self.move(state)
             else:
                 state.roll(max_keep)
 
-            #print(K1[self.cache[5].index([6,6,5,5,5]) * 10 + 5])
+            # print(K1[self.cache[5].index([6,6,5,5,5]) * 10 + 5])
             return max_keep
 
         if state.rolls == 3:
@@ -131,12 +132,12 @@ class SolitaireAgent():
         raise Exception("Invalid roll number: greater than 2")
 
 
-class SolitaireOptimalAgent(SolitaireAgent):
+class OptimalAgent(SolitaireAgent):
 
-    def __init__(self, path):
+    def __init__(self):
         SolitaireAgent.__init__(self, "SingleBest")
         self.dictionary = {"full": 0}
-        with open(path) as f:
+        with open("../Data/Optimal Solitaire/optimal.txt") as f:
             for line in f:
                 (key, val) = line.split(", ")
                 self.dictionary[int(key)] = float(val)
@@ -147,18 +148,18 @@ class SolitaireOptimalAgent(SolitaireAgent):
         return v
 
 
-class SolitaireNNAgent(SolitaireAgent):
+class NNAgent(SolitaireAgent):
 
     def __init__(self, path):
         SolitaireAgent.__init__(self, "SingleNN")
         hidden_size1 = 128
         hidden_size2 = 32
         self.model = nn.Sequential(nn.Linear(15, hidden_size1, False),
-                      nn.Sigmoid(),
-                      nn.Linear(hidden_size1,hidden_size2, False),
-                      nn.Sigmoid(),
-                      nn.Linear(hidden_size2, 1, False),
-                      nn.Sigmoid())
+                                   nn.Sigmoid(),
+                                   nn.Linear(hidden_size1, hidden_size2, False),
+                                   nn.Sigmoid(),
+                                   nn.Linear(hidden_size2, 1, False),
+                                   nn.Sigmoid())
         self.model.load_state_dict(torch.load(path))
 
     def evaluate(self, dice, up, cats, cat):
@@ -173,14 +174,15 @@ class SolitaireNNAgent(SolitaireAgent):
         elif 0 in new_cat:
             y_state = 1
 
-        #v = self.model(torch.tensor(states + [up] + [y_state], dtype=torch.float32))
+        # v = self.model(torch.tensor(states + [up] + [y_state], dtype=torch.float32))
         # Here're some other possibilities of using the model.
         # Hopefully I've picked the right one to use...
         v = v + self.model(torch.tensor(states + [up] + [y_state], dtype=torch.float32)) * 50
-        #v =  v + self.model(torch.tensor(states + [up] + [y_state], dtype=torch.float32))
+        # v =  v + self.model(torch.tensor(states + [up] + [y_state], dtype=torch.float32))
         return v
 
-class SolitaireRandomAgent(SolitaireAgent):
+
+class RandomAgent(SolitaireAgent):
     def __init__(self):
         SolitaireAgent.__init__(self, "SingleRandom")
 
@@ -188,7 +190,7 @@ class SolitaireRandomAgent(SolitaireAgent):
         return random.random()
 
 
-class SolitaireGreedyAgent(SolitaireAgent):
+class GreedyAgent(SolitaireAgent):
 
     def __init__(self):
         SolitaireAgent.__init__(self, "SingleBlind")
@@ -198,10 +200,10 @@ class SolitaireGreedyAgent(SolitaireAgent):
         return v
 
 
-class SolitaireAverageAgent(SolitaireAgent):
+class AverageAgent(SolitaireAgent):
 
     def __init__(self):
-        SolitaireAgent.__init__(self,"SingleReallyBlind")
+        SolitaireAgent.__init__(self, "SingleReallyBlind")
 
     def evaluate(self, dice, up, cats, cat):
         v, new_cat, new_up = lib.fillScore(dice, up, cats, cat)
@@ -211,12 +213,12 @@ class SolitaireAverageAgent(SolitaireAgent):
         if state.rolls < 2:
             SolitaireAgent.move(self, state)
         else:
-            count = [0,0,0,0,0,0]
+            count = [0, 0, 0, 0, 0, 0]
             for d in state.dice:
-                count[d-1] += 1
+                count[d - 1] += 1
 
             num = count.index(max(count)) + 1
 
-            kept = [num for _ in range (count[num - 1])]
+            kept = [num for _ in range(count[num - 1])]
             state.roll(kept)
-            return kep
+            return kept

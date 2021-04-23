@@ -2,10 +2,17 @@ import random
 import torch
 import torch.nn as nn
 import lib as util
-import torch.nn.functional as F
-import numpy
 
+INPUT_SIZE = 15
+HIDDEN_SIZE1 = 128
+HIDDEN_SIZE2 = 32
+OUTPUT_SIZE = 1
+ALPHA = 0.04
+GAMMA = 0.99
+LAMBDA = 0.41
+EPISODES = 10
 FACTOR = 500
+OUTPUT_PATH = "../Data/Neural Network/output.pt"
 
 
 def roll(kept):
@@ -19,7 +26,7 @@ def roll(kept):
     return result
 
 
-def input_format(states, up, y_state,):
+def input_format(states, up, y_state, ):
     return torch.tensor(states + [up] + [y_state], dtype=torch.float32)
 
 
@@ -75,16 +82,6 @@ def state_evaluate(dice, cat, up, state, y_state, model):
 
 
 def main():
-    input_size = 15
-    hidden_size1 = 128
-    hidden_size2 = 32
-    output_size = 1
-    a = 0.04
-    g = 0.99
-    l = 0.41
-    episodes = 1000
-
-
     cache = [[[]], util.dicePatterns(1), util.dicePatterns(2), util.dicePatterns(3), util.dicePatterns(4),
              util.dicePatterns(5)]
     full = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -98,27 +95,26 @@ def main():
         Highest possible score: 1575
     '''
 
-    m = nn.Sequential(nn.Linear(input_size, hidden_size1, False),
+    m = nn.Sequential(nn.Linear(INPUT_SIZE, HIDDEN_SIZE1, False),
                       nn.Sigmoid(),
-                      nn.Linear(hidden_size1,hidden_size2, False),
+                      nn.Linear(HIDDEN_SIZE1, HIDDEN_SIZE2, False),
                       nn.Sigmoid(),
-                      nn.Linear(hidden_size2, output_size, False),
+                      nn.Linear(HIDDEN_SIZE2, OUTPUT_SIZE, False),
                       nn.Sigmoid())
 
-    #m.load_state_dict(torch.load("Data/new_module3.pt"))
+    # m.load_state_dict(torch.load("Data/new_module3.pt"))
 
-    #'''
+    # '''
     for p in m.parameters():
-        #p.data = torch.zeros_like(p)
+        # p.data = torch.zeros_like(p)
         p.grad = torch.zeros_like(p)
-    #'''
-
+    # '''
 
     print("before training:")
-    print(m(input_format([1,1,1,1,1,1,1,1,1,1,1,1,0], 0, -1)))
+    print(m(input_format([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 0, -1)))
     print("training...")
 
-    for episode in range(episodes):
+    for episode in range(EPISODES):
         # Clear the trace
         for p in m.parameters():
             p.grad = torch.zeros_like(p)
@@ -235,7 +231,7 @@ def main():
             # Do the TD-Lambda thing
             with torch.no_grad():
                 for p in m.parameters():
-                    p.grad *= l
+                    p.grad *= LAMBDA
 
             out = m(input_format(state, up, y_state))
             out.backward()
@@ -246,33 +242,28 @@ def main():
                         reward += 5
                     delta = reward - out
                 else:
-                    delta = g * m(input_format(next_state, next_up, next_ystate)) - out
+                    delta = GAMMA * m(input_format(next_state, next_up, next_ystate)) - out
 
                 for p in m.parameters():
-                    p += a * delta * p.grad
+                    p += ALPHA * delta * p.grad
 
             state = next_state
             up = next_up
             y_state = next_ystate
 
-            #print(round_id, dice, state, up, y_state, current_score)
-            #print(empty)
-        #print(m(input_format([1,1,1,1,1,1,1,1,1,1,1,1,0], 0, -1)))
-        print(episode, " / ", episodes)
+            # print(round_id, dice, state, up, y_state, current_score)
+            # print(empty)
+        # print(m(input_format([1,1,1,1,1,1,1,1,1,1,1,1,0], 0, -1)))
+        print(episode, " / ", EPISODES)
         print(m(input_format([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 0, -1)).item())
     '''
     print("---------weights---------")
     for p in m.parameters():
         print(p)   
     '''
-    print(m(input_format([1,1,1,1,1,1,1,1,1,1,1,1,0], 0, -1)).item())
+    print(m(input_format([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], 0, -1)).item())
 
-    torch.save(m.state_dict(), "Data/new_module5a.pt")
-
-
+    torch.save(m.state_dict(), OUTPUT_PATH)
 
 
 main()
-
-
-

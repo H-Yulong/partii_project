@@ -1,26 +1,11 @@
-import yahtzee_agent as y
-import matplotlib.pyplot as plt
+import Agents.environment as env
+import Agents.solitaire_agents as solitaire
+import Agents.two_player_agents as twopl
 
-episodes = 1000
+episodes = 10
 
-'''
-agent = y.SingleBestAgent("Data/output.txt")
-agent2 = agent2 = y.SingleNNAgent("Data/module.pt")
-agent3 = y.SingleBlindAgent()
-agent4 = y.SingleBestAgent("Data/esti_table.txt")
-'''
-
-#agent2 = y.NNTwoPlayer("../Data/two_player_new.pt", 16,16)
-#agent2 = y.MixedTwoPlayer()
-agent2 = y.MixedTwoPlayer()
-#agent2 = y.SingleBlindAgent()
-#agent2 = y.NormalTwoPlayer()
-
-#agent2 = y.SingleReallyBlindAgent()
-#agent = y.SingleBlindAgent()
-#agent2 = y.MixedTwoPlayer()
-#agent2 = y.TableBasedTwoPlayer()
-agent = y.SingleBestAgent("../Data/output.txt")
+agent = solitaire.OptimalAgent()
+agent2 = twopl.NormalAgent()
 
 r1 = 1500
 r2 = 1500
@@ -32,8 +17,8 @@ log2 = []
 win = 0
 
 for i in range(episodes):
-    s1 = y.GameState(cats=[], log=False)
-    s2 = y.GameState(cats=[], log=False)
+    s1 = env.GameState(cats=[], log=False)
+    s2 = env.GameState(cats=[], log=False)
 
     #s1.roll([6, 6, 4, 3, 1])
 
@@ -49,10 +34,6 @@ for i in range(episodes):
         if not s2.gameover:
             agent2.move(s2, s1)
 
-    if not s1.gameover:
-        print("Wrong")
-        s1.printAll()
-        break
     #'''
 
     log.append(s1.score)
@@ -76,7 +57,6 @@ for i in range(episodes):
 print(log)
 print(log2)
 print(win)
-print(agent2.improve_count)
-print(agent2.improve)
+
 
 

@@ -2,9 +2,19 @@ import random
 import torch
 import torch.nn as nn
 import lib
-import yahtzee_agent as y
-import torch.nn.functional as F
-import numpy
+import Agents.environment as env
+import Agents.solitaire_agents
+
+INPUT_SIZE = 32
+HIDDEN_SIZE1 = 32
+HIDDEN_SIZE2 = 32
+OUTPUT_SIZE = 1
+ALPHA = 0.04  # random.random() / 10
+LAMBDA = 0.4  # random.uniform(0.2, 0.8)
+GAMMA = 0.99  # random.uniform(0.2, 0.8)
+EPISODES = 10
+SCORE_WEIGHT = 100
+OUTPUT_PATH = "../Data/Neural Network/output.pt"
 
 '''
 This is the second two-player agent
@@ -88,17 +98,7 @@ def state_evaluate(dice, cat, up, state, y_state, score1, state2, up2, y_state2,
 
 
 def main():
-    input_size = 32
-    hidden_size1 = 32
-    hidden_size2 = 32
-    output_size = 1
-    a = 0.04 #random.random() / 10
-    l = 0.4 #random.uniform(0.2, 0.8)
-    g = 0.99 #random.uniform(0.2, 0.8)
-    print(a, l, g)
-    episodes = 500
-    score_weight = 100
-
+    print(ALPHA, LAMBDA, GAMMA)
     cache = [[[]], lib.dicePatterns(1), lib.dicePatterns(2), lib.dicePatterns(3), lib.dicePatterns(4),
              lib.dicePatterns(5)]
     full = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -112,11 +112,11 @@ def main():
         Highest possible score: 1575
     '''
 
-    m = nn.Sequential(nn.Linear(input_size, hidden_size1, True),
+    m = nn.Sequential(nn.Linear(INPUT_SIZE, HIDDEN_SIZE1, True),
                       nn.Sigmoid(),
-                      nn.Linear(hidden_size1, hidden_size2, True),
+                      nn.Linear(HIDDEN_SIZE1, HIDDEN_SIZE2, True),
                       nn.Sigmoid(),
-                      nn.Linear(hidden_size2, output_size, True),
+                      nn.Linear(HIDDEN_SIZE2, OUTPUT_SIZE, True),
                       nn.Sigmoid())
 
     # m.load_state_dict(torch.load("Data/two_player4.pt"))
@@ -127,15 +127,15 @@ def main():
 
     print("training...")
 
-    opti = y.SingleBestAgent("Data/output.txt")
+    opti = Agents.solitaire_agents.OptimalAgent()
 
-    for episode in range(episodes):
+    for episode in range(EPISODES):
         # Clear the trace
         for p in m.parameters():
             p.grad = torch.zeros_like(p)
 
         # Initial state
-        opti_state = y.GameState(cats=[], log=False)
+        opti_state = env.GameState(cats=[], log=False)
         opti_y = 0
 
         state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -265,32 +265,32 @@ def main():
             # Do the TD-Lambda thing
             with torch.no_grad():
                 for p in m.parameters():
-                    p.grad *= l
+                    p.grad *= LAMBDA
 
             out = m(input_format(state, up, y_state, current_score, pre_format(opti_state.cats), opti_state.up, opti_y,
                                  opti_state.score))
             out.backward()
             with torch.no_grad():
-                reward = (next_score - opti_state.score) / score_weight
-                delta = reward + g * m(
+                reward = (next_score - opti_state.score) / SCORE_WEIGHT
+                delta = reward + GAMMA * m(
                     input_format(next_state, next_up, next_ystate, next_score, pre_format(opti_state.cats),
                                  opti_state.up, opti_y, opti_state.score)) - out
 
                 for p in m.parameters():
-                    p += a * delta * p.grad
+                    p += ALPHA * delta * p.grad
 
             state = next_state
             up = next_up
             y_state = next_ystate
             current_score = next_score
 
-        print(episode, " / ", episodes)
+        print(episode, " / ", EPISODES)
         print(m(input_format([0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0], 0, 0, 67,
                              [0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0], 0, 0, 100)))
         print(m(input_format([0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0], 0, 0, 100,
                              [0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0], 0, 0, 67)))
 
-    torch.save(m.state_dict(), "Data/two_player_new.pt")
+    torch.save(m.state_dict(), OUTPUT_PATH)
 
 
 main()

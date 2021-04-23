@@ -6,6 +6,7 @@ from scipy.stats import norm
 from math import sqrt
 import random
 
+
 class Dist:
     def __init__(self, min, max, dist):
         self.min = min
@@ -62,7 +63,6 @@ class TwoPlayerAgent:
                     # max_cat = e
             R3[self.cache[5].index(d)] = max_exp
 
-
         K2 = {}
         for d in self.cache[5]:
             K2[self.cache[5].index(d) * 10 + 5] = R3[self.cache[5].index(d)]
@@ -80,7 +80,7 @@ class TwoPlayerAgent:
 
             for key, val in K2.items():
                 d = self.cache[key % 10][key // 10]
-                #print(d, val)
+                # print(d, val)
 
                 if lib.subset(d, state.dice):
                     if val > max_exp:
@@ -88,7 +88,7 @@ class TwoPlayerAgent:
                         max_keep = d
             if (lib.subset(max_keep, state.dice)) and lib.subset(state.dice, max_keep):
                 state.rolls = 0
-                #self.move(state, state2)
+                # self.move(state, state2)
             else:
                 state.roll(max_keep)
 
@@ -128,7 +128,7 @@ class TwoPlayerAgent:
                         max_keep = d
             if (lib.subset(max_keep, state.dice)) and lib.subset(state.dice, max_keep):
                 state.rolls = 0
-                #self.move(state, state2)
+                # self.move(state, state2)
             else:
                 state.roll(max_keep)
 
@@ -140,16 +140,17 @@ class TwoPlayerAgent:
 
         raise Exception("Invalid roll number: greater than 2")
 
-class TableBasedTwoPlayer(TwoPlayerAgent):
+
+class TableBased(TwoPlayerAgent):
 
     def __init__(self):
         TwoPlayerAgent.__init__(self, "TableBasedTwoPlayer")
-        empty_dist = Dist(0,0,[])
+        empty_dist = Dist(0, 0, [])
         self.library = {"full": empty_dist}
         print("Loading library...")
         print("Please wait for a few minutes...")
-        for i in range(1,14):
-            filename = "../Data/Table_Maximize/" + str(i)
+        for i in range(1, 14):
+            filename = "../Data/MaxProb/" + str(i)
             f = open(filename, "rb")
             state = f.read(4)
 
@@ -157,19 +158,19 @@ class TableBasedTwoPlayer(TwoPlayerAgent):
                 state = int.from_bytes(state, "little")
                 min = int.from_bytes(f.read(4), "little")
                 max = int.from_bytes(f.read(4), "little")
-                #Read cumulative data
+                # Read cumulative data
                 dist = []
                 for j in range(min + 1, max):
                     dist.append(struct.unpack('d', f.read(8))[0])
 
-                #Process Estimation
+                # Process Estimation
                 dist2 = []
                 dist2.append(1 - dist[0])
                 for j in range(len(dist) - 1):
-                    dist2.append(dist[j] - dist[j+1])
-                dist2.append(dist[len(dist)-1])
+                    dist2.append(dist[j] - dist[j + 1])
+                dist2.append(dist[len(dist) - 1])
 
-                #Add to dictionary
+                # Add to dictionary
                 self.library[state] = Dist(min, max, dist2)
                 state = f.read(4)
 
@@ -197,7 +198,8 @@ class TableBasedTwoPlayer(TwoPlayerAgent):
 
         return rank
 
-class NNTwoPlayer(TwoPlayerAgent):
+
+class NNAgent(TwoPlayerAgent):
 
     def __init__(self, path, hidden_size1, hidden_size2):
         TwoPlayerAgent.__init__(self, "NNTwoPlayer")
@@ -207,7 +209,7 @@ class NNTwoPlayer(TwoPlayerAgent):
                                    nn.Sigmoid(),
                                    nn.Linear(hidden_size2, 1, False),
                                    nn.Sigmoid())
-        self.model.load_state_dict(torch.load(path),strict=False)
+        self.model.load_state_dict(torch.load(path), strict=False)
 
     def evaluate(self, dice, up, cats, cat, score, state2):
         v, new_cat, up = lib.fillScore(dice, up, cats, cat)
@@ -232,25 +234,25 @@ class NNTwoPlayer(TwoPlayerAgent):
         elif 0 in state2.cats:
             y_state2 = 1
 
-
-        return  self.model(torch.tensor(
+        return self.model(torch.tensor(
             states + [up, y_state, score + v] + states2 + [state2.up, y_state2, state2.score],
             dtype=torch.float32))
 
-class NNTwoPlayer2(TwoPlayerAgent):
-    def __init__(self,path):
+
+class NNAgent2(TwoPlayerAgent):
+    def __init__(self, path):
         TwoPlayerAgent.__init__(self, "TableBasedTwoPlayer")
         hidden_size1 = 32
         hidden_size2 = 64
         hidden_size3 = 32
         self.model = nn.Sequential(nn.Linear(32, hidden_size1, False),
-                          nn.Sigmoid(),
-                          nn.Linear(hidden_size1, hidden_size2, False),
-                          nn.Sigmoid(),
-                          nn.Linear(hidden_size2, hidden_size3, False),
-                          nn.Tanh(),
-                          nn.Linear(hidden_size3, 1, False),
-                          nn.Tanh())
+                                   nn.Sigmoid(),
+                                   nn.Linear(hidden_size1, hidden_size2, False),
+                                   nn.Sigmoid(),
+                                   nn.Linear(hidden_size2, hidden_size3, False),
+                                   nn.Tanh(),
+                                   nn.Linear(hidden_size3, 1, False),
+                                   nn.Tanh())
         self.model.load_state_dict(torch.load(path))
 
     def evaluate(self, dice, up, cats, cat, score, state2):
@@ -276,10 +278,10 @@ class NNTwoPlayer2(TwoPlayerAgent):
         elif 0 in state2.cats:
             y_state2 = 1
 
-
-        return  v + self.model(torch.tensor(
+        return v + self.model(torch.tensor(
             states + [up, y_state, score + v] + states2 + [state2.up, y_state2, state2.score],
             dtype=torch.float32)) * 300
+
 
 class TwoPolicyAgent(TwoPlayerAgent):
 
@@ -289,7 +291,7 @@ class TwoPolicyAgent(TwoPlayerAgent):
         self.dictionary_sqr = {"full": 0}
         empty_dist = Dist(0, 0, [])
         self.library = {"full": empty_dist}
-        with open("../output.txt") as f:
+        with open("../Data/Optimal Solitaire/optimal.txt") as f:
             for line in f:
                 (key, val, val_sqr) = line.split(", ")
                 self.dictionary[int(key)] = float(val)
@@ -315,7 +317,7 @@ class TwoPolicyAgent(TwoPlayerAgent):
             self_var = self.dictionary_sqr.get(self_code)
             oppo_var = self.dictionary_sqr.get(oppo_code)
 
-            opti_winrate = 1 - norm.cdf((oppo_potential - self_potential)/sqrt(self_var + oppo_var))
+            opti_winrate = 1 - norm.cdf((oppo_potential - self_potential) / sqrt(self_var + oppo_var))
 
             self_dist = self.lib_get(self_code)
 
@@ -323,19 +325,18 @@ class TwoPolicyAgent(TwoPlayerAgent):
             if self_dist.max > (oppo_potential - state.score):
                 risky_winrate = self_dist.dist[int(oppo_potential - state.score - self_dist.min - 1)]
 
-            #print(opti_winrate, risky_winrate)
+            # print(opti_winrate, risky_winrate)
 
             if opti_winrate >= risky_winrate:
                 self.evaluate = self.opti_evaluate
-                #print("Opti move!")
+                # print("Opti move!")
             else:
                 self.evaluate = self.risky_evaluate
                 self.improve += (risky_winrate - opti_winrate)
                 self.improve_count += 1
-                #print("Risky move!")
+                # print("Risky move!")
 
         return TwoPlayerAgent.move(self, state, state2)
-
 
     def opti_evaluate(self, dice, up, cats, cat, score, state2):
         v, new_cat, up = lib.fillScore(dice, up, cats, cat)
@@ -357,7 +358,7 @@ class TwoPolicyAgent(TwoPlayerAgent):
     def lib_get(self, code):
         # Lazy load library
         if (code not in self.library.keys()):
-            cats,up = lib.decode(code)
+            cats, up = lib.decode(code)
             empty = 13 - len(cats)
             filename = "../Data/Table_Maximize/" + str(empty)
             print("Lazy loading table " + str(empty) + "...")
@@ -379,13 +380,14 @@ class TwoPolicyAgent(TwoPlayerAgent):
             f.close()
         return self.library.get(code)
 
-class NormalTwoPlayer(TwoPlayerAgent):
+
+class NormalAgent(TwoPlayerAgent):
     def __init__(self):
         TwoPlayerAgent.__init__(self, "NormalTwoPlayer")
         self.dictionary = {"full": 0}
         self.dictionary_sqr = {"full": 0}
         empty_dist = Dist(0, 0, [])
-        with open("../output.txt") as f:
+        with open("../Data/Optimal Solitaire/optimal_variance.txt") as f:
             for line in f:
                 (key, val, val_sqr) = line.split(", ")
                 self.dictionary[int(key)] = float(val)
