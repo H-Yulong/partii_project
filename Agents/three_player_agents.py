@@ -1,9 +1,5 @@
 import lib
-import struct
-import torch
-import torch.nn as nn
-from scipy.stats import norm
-from math import sqrt
+import Agents.two_player_agents as twopl
 
 
 class ThreePlayerAgent:
@@ -133,6 +129,16 @@ class ThreePlayerAgent:
         raise Exception("Invalid roll number: greater than 2")
 
 
-class MostDangerousAgent:
+class MostDangerousAgent(ThreePlayerAgent):
     def __init__(self):
-        return
+        ThreePlayerAgent.__init__(self, "MostDangerous")
+        self.two_player_agent = twopl.TwoPolicyAgent()
+
+    def move(self, state, state2, state3):
+        strength2 = self.two_player_agent.dictionary.get(lib.code(state2.cats, state2.up))
+        strength3 = self.two_player_agent.dictionary.get(lib.code(state3.cats, state3.up))
+
+        if strength2 > strength3:
+            return self.two_player_agent.move(state, state2)
+        else:
+            return self.two_player_agent.move(state, state3)

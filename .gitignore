@@ -2,13 +2,13 @@
 /Outputs
 /Backup
 /Examples
-/Data
+/Data/MaxProb/*
 /Agents/__pycache__
 /venv
+/Experiment Data
 /__pycache__
 *.lnk
 *.o
 *.exe
 *.stackdump
-*.txt
 /.idea

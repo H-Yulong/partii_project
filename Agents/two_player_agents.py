@@ -290,7 +290,7 @@ class TwoPolicyAgent(TwoPlayerAgent):
         self.dictionary_sqr = {"full": 0}
         empty_dist = Dist(0, 0, [])
         self.library = {"full": empty_dist}
-        with open("../Data/Optimal Solitaire/optimal.txt") as f:
+        with open("../Data/Optimal Solitaire/optimal_variance.txt") as f:
             for line in f:
                 (key, val, val_sqr) = line.split(", ")
                 self.dictionary[int(key)] = float(val)
@@ -359,7 +359,7 @@ class TwoPolicyAgent(TwoPlayerAgent):
         if (code not in self.library.keys()):
             cats, up = lib.decode(code)
             empty = 13 - len(cats)
-            filename = "../Data/Table_Maximize/" + str(empty)
+            filename = "../Data/MaxProb/" + str(empty)
             print("Lazy loading table " + str(empty) + "...")
             f = open(filename, "rb")
             state_no = f.read(4)
