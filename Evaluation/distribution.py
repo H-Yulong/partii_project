@@ -1,4 +1,5 @@
-import yahtzee_agent as y
+import Agents.environment as env
+import Agents.solitaire_agents as solitaire
 import matplotlib.pyplot as plt
 
 
@@ -14,11 +15,10 @@ episodes = 1000
 total = 0
 total_sqr = 0
 data = []
-agent = y.SingleBestAgent("../Data/output.txt")
-#agent = y.SingleNNAgent("../Data/new_module5c.pt")
+agent = solitaire.OptimalAgent()
 
 for i in range(episodes):
-    state = y.GameState(cats=[2,6,9,10,11], log=False)
+    state = env.GameState(cats=[2, 6, 9, 10, 11], log=False)
     while not state.gameover:
         while state.rolls > 0:
             agent.move(state)
@@ -37,12 +37,12 @@ for i in range(episodes):
     print("Game no.", i, ":", score)
 
 x = [i for i in range(500)]
-y = [null_get(results, i) / episodes for i in x]
+env = [null_get(results, i) / episodes for i in x]
 
 f = open("../Data/Soli/nn2.txt", "w")
 f.write(str(data) + "\n")
 f.write(str(total / episodes) + " ")
 f.write(str(pow((total_sqr - total * total / episodes) / (episodes - 1), 0.5)))
 
-plt.plot(x, y)
+plt.plot(x, env)
 plt.show()

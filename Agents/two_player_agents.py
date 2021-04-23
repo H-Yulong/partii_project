@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 from scipy.stats import norm
 from math import sqrt
-import random
 
 
 class Dist:
