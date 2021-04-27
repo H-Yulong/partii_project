@@ -1,16 +1,15 @@
 import lib
-import yahtzee_agent as y
+import Agents.environment as env
+import Agents.solitaire_agents as solitaire
 
-agent = y.SingleNNAgent("Data/new_module4.pt")
+agent = solitaire.OptimalAgent()
 #agent = y.SingleBlindAgent()
 
-state1 = y.GameState(cats=[],log=True)
+state1 = env.GameState(cats=[],log=True)
 
-while not state1.gameover:
-    while state1.rolls > 0:
-        agent.move(state1)
-    if not state1.gameover:
-        agent.move(state1)
+state1.roll([5, 5, 5, 6, 6])
+agent.move(state1)
+
 
 
 

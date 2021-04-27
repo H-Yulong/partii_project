@@ -119,7 +119,7 @@ class SolitaireAgent():
             else:
                 state.roll(max_keep)
 
-            # print(K1[self.cache[5].index([6,6,5,5,5]) * 10 + 5])
+            #print(K1[self.cache[3].index([5,5,5]) * 10 + 3])
             return max_keep
 
         if state.rolls == 3:
@@ -171,11 +171,7 @@ class NNAgent(SolitaireAgent):
         elif 0 in new_cat:
             y_state = 1
 
-        # v = self.model(torch.tensor(states + [up] + [y_state], dtype=torch.float32))
-        # Here're some other possibilities of using the model.
-        # Hopefully I've picked the right one to use...
         v = v + self.model(torch.tensor(states + [up] + [y_state], dtype=torch.float32)) * 50
-        # v =  v + self.model(torch.tensor(states + [up] + [y_state], dtype=torch.float32))
         return v
 
 

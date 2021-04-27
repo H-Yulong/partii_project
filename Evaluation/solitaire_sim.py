@@ -1,14 +1,7 @@
+import lib
 import Agents.environment as env
 import Agents.solitaire_agents as solitaire
 import matplotlib.pyplot as plt
-
-
-def null_get(dic, key):
-    if key in dic.keys():
-        return dic[key]
-    else:
-        return 0
-
 
 results = {}
 episodes = 1000
@@ -37,7 +30,7 @@ for i in range(episodes):
     print("Game no.", i, ":", score)
 
 x = [i for i in range(500)]
-env = [null_get(results, i) / episodes for i in x]
+env = [lib.null_get(results, i) / episodes for i in x]
 
 f = open("../Data/Soli/nn2.txt", "w")
 f.write(str(data) + "\n")

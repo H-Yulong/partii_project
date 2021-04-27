@@ -1,9 +1,11 @@
 import lib
 import Agents.two_player_agents as twopl
+import Agents.solitaire_agents as solitaire
+from scipy.stats import norm
+from math import sqrt
 
 
-class ThreePlayerAgent:
-
+class MultiPlayerAgent:
     def __init__(self, name):
         self.name = name
         self.cache = [[[]], lib.dicePatterns(1), lib.dicePatterns(2),
@@ -11,10 +13,10 @@ class ThreePlayerAgent:
                       lib.dicePatterns(5)]
         return
 
-    def evaluate(self, dice, up, cats, cat, score, state2, state3):
+    def evaluate(self, dice, up, cats, cat, score, opponent_states):
         return 0
 
-    def move(self, state, state2, state3):
+    def move(self, state, opponent_states):
         full = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
         empty = list(full)
         for c in state.cats:
@@ -29,7 +31,7 @@ class ThreePlayerAgent:
             max_cat = empty[0]
             max_score = 0
             for e in empty:
-                v = self.evaluate(state.dice, state.up, state.cats, e, state.score, state2, state3)
+                v = self.evaluate(state.dice, state.up, state.cats, e, state.score, opponent_states)
                 if v > max_score:
                     max_cat = e
                     max_score = v
@@ -45,7 +47,7 @@ class ThreePlayerAgent:
             max_exp = 0
             # max_cat = 0
             for e in empty:
-                score = self.evaluate(d, state.up, state.cats, e, state.score, state2)
+                score = self.evaluate(d, state.up, state.cats, e, state.score, opponent_states)
                 if score > max_exp:
                     max_exp = score
                     # max_cat = e
@@ -129,16 +131,52 @@ class ThreePlayerAgent:
         raise Exception("Invalid roll number: greater than 2")
 
 
-class MostDangerousAgent(ThreePlayerAgent):
+class MostDangerousAgent(MultiPlayerAgent):
     def __init__(self):
-        ThreePlayerAgent.__init__(self, "MostDangerous")
+        MultiPlayerAgent.__init__(self, "MostDangerous")
         self.two_player_agent = twopl.TwoPolicyAgent()
 
-    def move(self, state, state2, state3):
-        strength2 = self.two_player_agent.dictionary.get(lib.code(state2.cats, state2.up))
-        strength3 = self.two_player_agent.dictionary.get(lib.code(state3.cats, state3.up))
+    def move(self, state, opponent_states):
+        strengths = []
+        for i in range(len(opponent_states)):
+            strengths.append(self.two_player_agent.dictionary.get(
+                lib.code(opponent_states[i].cats, opponent_states[i].up)))
 
-        if strength2 > strength3:
-            return self.two_player_agent.move(state, state2)
-        else:
-            return self.two_player_agent.move(state, state3)
+        dangerous_opponent = strengths.index(max(strengths))
+
+        return self.two_player_agent.move(state, opponent_states[dangerous_opponent])
+
+
+class NormalAgent(MultiPlayerAgent):
+    def __init__(self):
+        MultiPlayerAgent.__init__(self, "Normal")
+        self.dictionary = {"full": 0}
+        self.dictionary_sqr = {"full": 0}
+        k = 0.16
+        with open("../Data/Optimal Solitaire/optimal_variance.txt") as f:
+            for line in f:
+                (key, val, val_sqr) = line.split(", ")
+                self.dictionary[int(key)] = float(val)
+                self.dictionary_sqr[int(key)] = float(val_sqr) * k
+
+    def evaluate(self, dice, up, cats, cat, score, opponent_states):
+        v, new_cat, up = lib.fillScore(dice, up, cats, cat)
+
+        self_mean = v + self.dictionary.get(lib.code(new_cat, up)) + score
+        means = [s.score + self.dictionary.get(lib.code(s.cats, s.up)) for s in opponent_states]
+
+        self_var = self.dictionary_sqr.get(lib.code(new_cat, up))
+        variances = [self.dictionary_sqr.get(lib.code(s.cats, s.up)) for s in opponent_states]
+
+        n = len(opponent_states)
+        win_rate = 1 - norm.cdf(0, (n * self_mean - sum(means)), sqrt(n * self_var + sum(variances)))
+        return win_rate
+
+
+class OptimalSolitaireAgent(MultiPlayerAgent):
+    def __init__(self):
+        MultiPlayerAgent.__init__(self, "OptimalSolitaire")
+        self.agent = solitaire.OptimalAgent()
+
+    def evaluate(self, dice, up, cats, cat, score, opponent_states):
+        return self.agent.evaluate(dice, up, cats, cat)

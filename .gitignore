@@ -2,7 +2,7 @@
 /Outputs
 /Backup
 /Examples
-/Data/MaxProb/*
+/Data/MaxBeat/*
 /Agents/__pycache__
 /venv
 /Experiment Data
@@ -12,3 +12,5 @@
 *.exe
 *.stackdump
 /.idea
+playground.py
+playground.py

@@ -38,12 +38,12 @@ def get_data(filename):
 def main():
     fig, ax = plt.subplots()
 
-    x1, y1 = get_data("../Data/Soli/Opti.txt")
-    x2, y2 = get_data("../Data/Soli/SB.txt")
-    x3, y3 = get_data("../Data/Soli/Average.txt")
+    x1, y1 = get_data("../../Experiment Data/Soli/Opti.txt")
+    x2, y2 = get_data("../../Experiment Data/Soli/SC.txt")
+    x3, y3 = get_data("../../Experiment Data/Soli/Average.txt")
 
     line1 = ax.plot(x1, y1, label="Optimal Solitaire", color='red')
-    line2 = ax.plot(x2, y2, label="Solitaire A", color='green')
+    line2 = ax.plot(x2, y2, label="Solitaire C", color='green')
     line3 = ax.plot(x3, y3, label="Average Agent", color='orange')
 
     # Using set_dashes() to modify dashing of an existing line

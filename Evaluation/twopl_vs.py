@@ -1,11 +1,10 @@
 import Agents.environment as env
-import Agents.solitaire_agents as solitaire
 import Agents.two_player_agents as twopl
 
-episodes = 10
+episodes = 1000
 
-agent = solitaire.OptimalAgent()
-agent2 = twopl.NormalAgent()
+agent = twopl.OptimalSolitaireAgent()
+agent2 = twopl.TwoPolicyAgent()
 
 r1 = 1500
 r2 = 1500
@@ -25,9 +24,9 @@ for i in range(episodes):
     #'''
     while not s2.gameover:
         while s1.rolls > 0:
-            agent.move(s1)
+            agent.move(s1,s2)
         if not s1.gameover:
-            agent.move(s1)
+            agent.move(s1,s2)
 
         while s2.rolls > 0:
             agent2.move(s2, s1)

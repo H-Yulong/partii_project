@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from scipy.stats import norm
 from math import sqrt
+import Agents.solitaire_agents as solitaire
 
 
 class Dist:
@@ -294,7 +295,7 @@ class TwoPolicyAgent(TwoPlayerAgent):
             for line in f:
                 (key, val, val_sqr) = line.split(", ")
                 self.dictionary[int(key)] = float(val)
-                self.dictionary_sqr[int(key)] = float(val_sqr)
+                self.dictionary_sqr[int(key)] = float(val_sqr) * 0.16
         self.improve = 0
         self.improve_count = 0
 
@@ -359,7 +360,7 @@ class TwoPolicyAgent(TwoPlayerAgent):
         if (code not in self.library.keys()):
             cats, up = lib.decode(code)
             empty = 13 - len(cats)
-            filename = "../Data/MaxProb/" + str(empty)
+            filename = "../Data/MaxBeat/" + str(empty)
             print("Lazy loading table " + str(empty) + "...")
             f = open(filename, "rb")
             state_no = f.read(4)
@@ -385,23 +386,27 @@ class NormalAgent(TwoPlayerAgent):
         TwoPlayerAgent.__init__(self, "NormalTwoPlayer")
         self.dictionary = {"full": 0}
         self.dictionary_sqr = {"full": 0}
-        empty_dist = Dist(0, 0, [])
+        k = 0.16
         with open("../Data/Optimal Solitaire/optimal_variance.txt") as f:
             for line in f:
                 (key, val, val_sqr) = line.split(", ")
                 self.dictionary[int(key)] = float(val)
-                self.dictionary_sqr[int(key)] = float(val_sqr)
+                self.dictionary_sqr[int(key)] = float(val_sqr) * k
 
     def evaluate(self, dice, up, cats, cat, score, state2):
         v, new_cat, up = lib.fillScore(dice, up, cats, cat)
-        self_potential = v + self.dictionary.get(lib.code(new_cat, up)) + score
-        oppo_potential = state2.score + self.dictionary.get(lib.code(state2.cats, state2.up))
+        self_mean = v + self.dictionary.get(lib.code(new_cat, up)) + score
+        oppo_mean = state2.score + self.dictionary.get(lib.code(state2.cats, state2.up))
         self_var = self.dictionary_sqr.get(lib.code(new_cat, up))
         oppo_var = self.dictionary_sqr.get(lib.code(state2.cats, state2.up))
 
-        if (self_var == 0) and (oppo_var == 0):
-            if self_potential > oppo_potential:
-                return 1
-            else:
-                return 0
-        return 1 - norm.cdf((oppo_potential - self_potential) / sqrt(self_var + oppo_var))
+        return 1 - norm.cdf(0, (oppo_mean - self_mean), sqrt(self_var + oppo_var))
+
+
+class OptimalSolitaireAgent(TwoPolicyAgent):
+    def __init__(self):
+        TwoPolicyAgent.__init__(self, "OptimalSolitaire")
+        self.agent = solitaire.OptimalAgent()
+
+    def evaluate(self, dice, up, cats, cat, score, opponent_states):
+        return self.agent.evaluate(dice, up, cats, cat)
