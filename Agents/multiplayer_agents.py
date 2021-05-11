@@ -169,7 +169,14 @@ class NormalAgent(MultiPlayerAgent):
         variances = [self.dictionary_sqr.get(lib.code(s.cats, s.up)) for s in opponent_states]
 
         n = len(opponent_states)
-        win_rate = 1 - norm.cdf(0, (n * self_mean - sum(means)), sqrt(n * self_var + sum(variances)))
+        mean = n * self_mean - sum(means)
+        var = sqrt(n * self_var + sum(variances))
+        if var == 0:
+            if mean > 0:
+                return 1
+            else:
+                return 0
+        win_rate = 1 - norm.cdf(0, mean, var)
         return win_rate
 
 

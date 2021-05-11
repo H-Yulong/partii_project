@@ -11,6 +11,7 @@ typedef struct{
 	UT_hash_handle hh;
 } Dist;
 
+// Evaluates the score gained by filling a dice pattern in a given category under a gamestate.
 double evaluate(int* dice, int cat, int up, int* cats, int cats_size, int* new_code){
     // ASSERT: size is the cats_size of array that cats points to.
     // ASSERT: problematic parameters won't be used. If you see "Segmentation Fault", that's probably your fault.
@@ -105,6 +106,7 @@ double evaluate(int* dice, int cat, int up, int* cats, int cats_size, int* new_c
     return score;
 }
 
+// The probability of beating score s with given Dist.
 double prob(Dist dist, int s){
 	if (s <= dist.min){
 		return 1.0;
@@ -115,6 +117,7 @@ double prob(Dist dist, int s){
 	}
 }
 
+// Doubles the size of given array.
 double* doubleStorage(double* original, int size){
 	double* result = calloc(size*2, sizeof(double));
 	for (int i=0; i<size; i++){
@@ -124,6 +127,7 @@ double* doubleStorage(double* original, int size){
 	return result;
 }
 
+// Deep copy a Dist.
 Dist copyDist(Dist d){
 	Dist result;
 	result.min = d.min;
@@ -135,11 +139,13 @@ Dist copyDist(Dist d){
     return result;
 }
 
+// Free Dist structure.
 void freeDist(Dist d){
 	free(d.vals);
 	return;
 }
 
+// Prettyprint Dist data.
 void printDist(Dist d){
 	printf("min:%d, max:%d, vals:[", d.min, d.max);
     for(int i=0; i<d.max - d.min - 1; i++){
@@ -149,6 +155,7 @@ void printDist(Dist d){
 
 }
 
+// Evaluates the expected score of a gamestate.
 Dist expectation(int*** cache, int* empty, int up, int* cats, int cats_size, Dist* dictionary){
     int cache_sizes[] = {1,6,21,56,126,252};
     int cache_indexes[] = {0,1,7,28,84,210};

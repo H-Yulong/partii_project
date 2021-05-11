@@ -377,11 +377,7 @@ def main():
                     else:
                         delta = 0 - out
                 else:
-                    reward = 0  # (next_score2 - current_score) / score_weight
-                    if current_score2 > current_score:
-                        reward = reward
-                    delta = reward + GAMMA * m(
-                        input_format(next_state2, next_up2, next_ystate2, next_score2, state, up, y_state,
+                    delta = GAMMA * m(input_format(next_state2, next_up2, next_ystate2, next_score2, state, up, y_state,
                                      current_score)) - out
 
                 for p in m.parameters():

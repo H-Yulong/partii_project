@@ -1,9 +1,10 @@
 import Agents.environment as env
-import Agents.solitaire_agents as solitaire
 import Agents.multiplayer_agents as multi
 
+# Initialize parameters and agents
 EPISODES = 1000
-agents = [multi.MostDangerousAgent(), multi.NormalAgent(), multi.OptimalSolitaireAgent(), multi.OptimalSolitaireAgent()]
+normal = multi.NormalAgent()
+agents = [normal, multi.OptimalSolitaireAgent(), normal, normal, normal]
 N = len(agents)
 
 
@@ -27,6 +28,9 @@ def main():
                 if not player_state.gameover:
                     agents[j].move(player_state, states)
                 states.insert(j, player_state)
+        if not states[2].gameover:
+            print("Wrong!")
+            return
 
         # Record game results: score and rank
         results = []
@@ -35,7 +39,7 @@ def main():
             results.append(states[j].score)
 
         sorted_results = list(results)
-        sorted_results.sort()
+        sorted_results.sort(reverse=True)
         wins[results.index(sorted_results[0])] += 1
         for j in range(N):
             ranks[results.index(sorted_results[j])] += j + 1
@@ -50,6 +54,13 @@ def main():
         wins[i] = wins[i] / EPISODES
     print(ranks)
     print(wins)
+
+    # Save results
+    file = open("../Experiment Data/5pl_data.txt", "w")
+    for i in range(N):
+        file.write(agents[i].name + "\n")
+        file.write(str(logs[i]) + "\n")
+    file.close()
 
 
 main()

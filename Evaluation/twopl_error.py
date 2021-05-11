@@ -1,4 +1,6 @@
-import yahtzee_agent as y
+import Agents.environment as env
+import Agents.two_player_agents as twopl
+import Agents.solitaire_agents as soli
 import lib
 
 cache = [[[]], lib.dicePatterns(1), lib.dicePatterns(2),
@@ -6,11 +8,11 @@ cache = [[[]], lib.dicePatterns(1), lib.dicePatterns(2),
          lib.dicePatterns(5)]
 full = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
-
+# Function that generates gamestates of Yahtzee late games
 def generate_game(agent, empty):
     turns = 26 - empty
-    s1 = y.GameState(cats=[], log=False)
-    s2 = y.GameState(cats=[], log=False)
+    s1 = env.GameState(cats=[], log=False)
+    s2 = env.GameState(cats=[], log=False)
     while turns > 0:
 
         while s1.rolls > 0:
@@ -32,6 +34,7 @@ def generate_game(agent, empty):
     return s1, s2
 
 
+# Functions that recursively calculate the relative error
 def base_eval(dice, up, cats, cat, score, score2, empty_initial):
     odd = empty_initial % 2 != 0
     v, new_cat, up = lib.fillScore(dice, up, cats, cat)
@@ -47,23 +50,23 @@ def base_eval(dice, up, cats, cat, score, score2, empty_initial):
             return 1
 
 
+
 def even_eval(dice, up, cats, cat, score, state2, agent, empty_cats, empty_initial):
     v, new_cat, up = lib.fillScore(dice, up, cats, cat)
-    state = y.GameState(cats=new_cat, up=up, rolls=2, score=score + v)
+    state = env.GameState(cats=new_cat, up=up, rolls=2, score=score + v)
     return eval_error(agent, state, state2, empty_cats - 1, empty_initial)
 
 
 def odd_eval(dice, state1, up, cats, cat, score, agent, empty_cats, empty_initial):
     v, new_cat, up = lib.fillScore(dice, up, cats, cat)
-    state = y.GameState(cats=new_cat, up=up, rolls=2, score=score + v)
+    state = env.GameState(cats=new_cat, up=up, rolls=2, score=score + v)
     return eval_error(agent, state1, state, empty_cats - 1, empty_initial)
 
 
+# Returns the expected error at state config s1,s2
+# If auto-win or auto-lose, expected error should be 0
+# Because all moves result in the same outcome: no error would ever occur.
 def eval_error(agent, s1, s2, empty_cats, empty_initial):
-    # Returns the expected error at state config s1,s2
-    # If auto-win or auto-lose, expected error should be 0
-    # Because all moves result in the same outcome: no error would ever occur.
-
     empty = list(full)
     for c in s2.cats:
         if c == -1:
@@ -154,17 +157,19 @@ def eval_error(agent, s1, s2, empty_cats, empty_initial):
 
     if empty_cats % 2 == 0:
         for dice in cache[5]:
-            state = y.GameState(cats=s1.cats, up=s1.up, dice=dice, rolls=2, score=s1.score)
-            #keep = agent.move(state)
-            keep = agent.move(state,s2)
-            error += (R1[cache[5].index(dice) * 10 + 5] - K1[cache[len(keep)].index(keep) * 10 + len(keep)]) * lib.prRoll(
+            state = env.GameState(cats=s1.cats, up=s1.up, dice=dice, rolls=2, score=s1.score)
+            # keep = agent.move(state)
+            keep = agent.move(state, s2)
+            error += (R1[cache[5].index(dice) * 10 + 5] - K1[
+                cache[len(keep)].index(keep) * 10 + len(keep)]) * lib.prRoll(
                 dice)
     else:
         for dice in cache[5]:
-            state = y.GameState(cats=s2.cats, up=s2.up, dice=dice, rolls=2, score=s2.score)
-            #keep = agent.move(state)
-            keep = agent.move(state,s1)
-            error += (R1[cache[5].index(dice) * 10 + 5] - K1[cache[len(keep)].index(keep) * 10 + len(keep)]) * lib.prRoll(
+            state = env.GameState(cats=s2.cats, up=s2.up, dice=dice, rolls=2, score=s2.score)
+            # keep = agent.move(state)
+            keep = agent.move(state, s1)
+            error += (R1[cache[5].index(dice) * 10 + 5] - K1[
+                cache[len(keep)].index(keep) * 10 + len(keep)]) * lib.prRoll(
                 dice)
     # print(dice, R1[cache[5].index(dice) * 10 + 5], keep, K1[cache[len(keep)].index(keep) * 10 + len(keep)])
 
@@ -172,8 +177,9 @@ def eval_error(agent, s1, s2, empty_cats, empty_initial):
 
 
 def main():
-    agent_gen = y.SingleBestAgent("../Data/output.txt")
-    agent_eval = y.MixedTwoPlayer()
+    # Initialize agnets
+    agent_gen = soli.OptimalAgent()
+    agent_eval = twopl.TwoPolicyAgent()
     empty_cats = 1
     episodes = 20
     data = []

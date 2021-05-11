@@ -362,6 +362,7 @@ int code(int* cats, int up, int size){
     return result;
 }
 
+// Appends an element to an array
 int* append(int* cats, int c, int size){
 	int* result = malloc(sizeof(int)*(size+1));
 	for (int i=0; i<size; i++){
@@ -371,6 +372,7 @@ int* append(int* cats, int c, int size){
 	return result;
 }
 
+// Evaluates the score gained by filling a dice pattern in a given category under a gamestate.
 double evaluate(int* dice, int cat, int up, int* cats, int cats_size, double* dictionary, double* dictionary_sqr, double* exp_squared){
 	// ASSERT: size is the cats_size of array that cats points to.
 	// ASSERT: problematic parameters won't be used. If you see "Segmentation Fault", that's probably your fault.
@@ -524,6 +526,7 @@ int* removeDice(int* dice, int d, int size){
     return NULL;
 }
 
+// Finds the index of an element in an array
 int find(int** lib, int* row, int row_size, int entries){
 	for (int i=0; i<entries; i++){
 		int found = 0;
@@ -540,6 +543,7 @@ int find(int** lib, int* row, int row_size, int entries){
 	return -1;
 }
 
+// Evaluates the expected score of a gamestate.
 double expectation(int*** cache, int* empty, int up, int* cats, int cats_size, double* dictionary, double* dictionary_sqr, double* exp_squared){
 	int cache_sizes[] = {1,6,21,56,126,252};
 	int cache_indexes[] = {0,1,7,28,84,210};

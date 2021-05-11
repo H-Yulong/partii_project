@@ -1,10 +1,7 @@
 import lib
-import struct
-import torch
-import torch.nn as nn
-from scipy.stats import norm
-from math import sqrt
-import random
+
+
+# Defines the Yahtzee gamestate for game simulations
 
 class GameState:
     def __init__(self, cats=None, up=0, dice=None, rolls=3, score=0, log=False):
@@ -22,7 +19,7 @@ class GameState:
         self.gameover = (len(cats) == 13)
 
     # Generates the first roll
-    def start(self,keep=[]):
+    def start(self, keep=[]):
         if self.log:
             print("Start!")
             print("-----Round 0-----")
@@ -36,6 +33,7 @@ class GameState:
             print(kept, "kept;", "roll result", str(self.dice) + ";", self.rolls, "rolls left.")
 
     # Fill in a category, calculate the score obtained
+    # Capable of printing game log
     def fill(self, cat):
         current_score, new_cat, up = lib.fillScore(self.dice, self.up, self.cats, cat)
         self.score += current_score
@@ -55,6 +53,7 @@ class GameState:
             else:
                 print("-----Round " + str(len(self.cats)) + "-----")
 
+    # Prettyprint the gamestate
     def printAll(self):
         print("Categories & Up:", self.cats, self.up)
         print("Dice & Rolls:", self.dice, self.rolls)

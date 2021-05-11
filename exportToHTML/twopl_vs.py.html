@@ -1,0 +1,60 @@
+<html>
+<head>
+<title>twopl_vs.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #808080;}
+.s3 { color: #6897bb;}
+.s4 { color: #6a8759;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+twopl_vs.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">Agents.environment </span><span class="s0">as </span><span class="s1">env</span>
+<span class="s0">import </span><span class="s1">Agents.two_player_agents </span><span class="s0">as </span><span class="s1">twopl</span>
+
+
+<span class="s2"># Initialize parameters and agents</span>
+<span class="s1">episodes = </span><span class="s3">1</span>
+<span class="s1">agent = twopl.OptimalSolitaireAgent()</span>
+<span class="s1">agent2 = twopl.NNAgent(</span><span class="s4">&quot;../Data/Neural Network/two_player_B.pt&quot;</span><span class="s0">, </span><span class="s3">32</span><span class="s0">, </span><span class="s3">32</span><span class="s1">)</span>
+<span class="s1">log = []</span>
+<span class="s1">log2 = []</span>
+<span class="s1">win = </span><span class="s3">0</span>
+
+<span class="s2"># Runninng game simulations</span>
+<span class="s0">for </span><span class="s1">i </span><span class="s0">in </span><span class="s1">range(episodes):</span>
+    <span class="s1">s1 = env.GameState(cats=[]</span><span class="s0">, </span><span class="s1">log=</span><span class="s0">True</span><span class="s1">)</span>
+    <span class="s1">s2 = env.GameState(cats=[]</span><span class="s0">, </span><span class="s1">log=</span><span class="s0">True</span><span class="s1">)</span>
+
+    <span class="s0">while not </span><span class="s1">s2.gameover:</span>
+        <span class="s0">while </span><span class="s1">s1.rolls &gt; </span><span class="s3">0</span><span class="s1">:</span>
+            <span class="s1">agent.move(s1</span><span class="s0">,</span><span class="s1">s2)</span>
+        <span class="s0">if not </span><span class="s1">s1.gameover:</span>
+            <span class="s1">agent.move(s1</span><span class="s0">,</span><span class="s1">s2)</span>
+
+        <span class="s0">while </span><span class="s1">s2.rolls &gt; </span><span class="s3">0</span><span class="s1">:</span>
+            <span class="s1">agent2.move(s2</span><span class="s0">, </span><span class="s1">s1)</span>
+        <span class="s0">if not </span><span class="s1">s2.gameover:</span>
+            <span class="s1">agent2.move(s2</span><span class="s0">, </span><span class="s1">s1)</span>
+
+    <span class="s1">log.append(s1.score)</span>
+    <span class="s1">log2.append(s2.score)</span>
+
+    <span class="s1">print(s1.score</span><span class="s0">, </span><span class="s1">s2.score</span><span class="s0">, </span><span class="s4">&quot;win rate:&quot;</span><span class="s0">, </span><span class="s1">win / (i + </span><span class="s3">1</span><span class="s1">))</span>
+
+<span class="s1">print(log)</span>
+<span class="s1">print(log2)</span>
+<span class="s1">print(win)</span>
+
+
+
+</pre>
+</body>
+</html>

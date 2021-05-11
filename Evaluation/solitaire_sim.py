@@ -3,6 +3,7 @@ import Agents.environment as env
 import Agents.solitaire_agents as solitaire
 import matplotlib.pyplot as plt
 
+# Initialize parameters
 results = {}
 episodes = 1000
 total = 0
@@ -10,6 +11,7 @@ total_sqr = 0
 data = []
 agent = solitaire.OptimalAgent()
 
+# Run game simulations
 for i in range(episodes):
     state = env.GameState(cats=[2, 6, 9, 10, 11], log=False)
     while not state.gameover:
@@ -32,6 +34,7 @@ for i in range(episodes):
 x = [i for i in range(500)]
 env = [lib.null_get(results, i) / episodes for i in x]
 
+# Save results
 f = open("../Data/Soli/nn2.txt", "w")
 f.write(str(data) + "\n")
 f.write(str(total / episodes) + " ")

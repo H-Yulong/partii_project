@@ -400,12 +400,21 @@ class NormalAgent(TwoPlayerAgent):
         self_var = self.dictionary_sqr.get(lib.code(new_cat, up))
         oppo_var = self.dictionary_sqr.get(lib.code(state2.cats, state2.up))
 
-        return 1 - norm.cdf(0, (oppo_mean - self_mean), sqrt(self_var + oppo_var))
+        mean = self_mean - oppo_mean
+        var = sqrt(self_var + oppo_var)
+
+        if var == 0:
+            if mean > 0:
+                return 1
+            else:
+                return 0
+        win_rate = 1 - norm.cdf(0, mean, var)
+        return win_rate
 
 
-class OptimalSolitaireAgent(TwoPolicyAgent):
+class OptimalSolitaireAgent(TwoPlayerAgent):
     def __init__(self):
-        TwoPolicyAgent.__init__(self, "OptimalSolitaire")
+        TwoPlayerAgent.__init__(self, "OptimalSolitaire")
         self.agent = solitaire.OptimalAgent()
 
     def evaluate(self, dice, up, cats, cat, score, opponent_states):
